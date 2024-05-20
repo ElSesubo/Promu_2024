@@ -1,6 +1,8 @@
 from guizero import App, Picture, Box, Text, TextBox, PushButton
 import os
 from PROMU.Promu_2024.pantallas.funciones_globales import center_window
+from PROMU.Promu_2024.pantallas.inicio.funciones import *
+from PROMU.Promu_2024.ClienteTCP import *
 import tkinter as tk
 from tkinter import font as tkfont
 from PIL import ImageFont
