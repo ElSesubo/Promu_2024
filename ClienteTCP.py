@@ -1,79 +1,73 @@
+import time
 import json
 from socket import *
-import time
 
-dir_IP_servidor = '158.42.188.200'
-puerto_servidor = 64010
-dir_socket_servidor = (dir_IP_servidor, puerto_servidor)
-s = socket(AF_INET, SOCK_STREAM)
+DIR_IP_SERVIDOR = '158.42.188.200'
+PUERTO_SERVIDOR = 64010
+DIR_SOCKET_SERVIDOR = (DIR_IP_SERVIDOR, PUERTO_SERVIDOR)
 
-mensaje_hello = f"HELLO 10.237.15.100\r\n"
+def iniciar_conexion():
+    s = socket(AF_INET, SOCK_STREAM)
+    s.connect(DIR_SOCKET_SERVIDOR)
+    return s
 
-s.connect(dir_socket_servidor)
-s.send(mensaje_hello.encode())
-mensaje_rx = s.recv(2048)
-if mensaje_rx.decode().startswith("200"):
-    nombre_usu = input("introduce el nombre de usuario: ")
-    mensaje_user = f"USER {nombre_usu}\r\n"
-    s.send(mensaje_user.encode())
+def enviar_mensaje(s, message):
+    s.send(message.encode())
+
+def recibir_mensaje(s, buffer_size=2048):
+    return s.recv(buffer_size).decode()
+
+def login(s, username, password):
+    mensaje_hello = f"HELLO 10.237.15.100\r\n"
+    s.send(mensaje_hello.encode())
     mensaje_rx = s.recv(2048)
     if mensaje_rx.decode().startswith("200"):
-        pass_usu = input(f"introduce la contraseña del usuario {nombre_usu.upper()}: ")
-        mensaje_pass = f"PASS {pass_usu}\r\n"
-        s.send(mensaje_pass.encode())
-        mensaje_rx = s.recv(2048)
-        if mensaje_rx.decode().startswith("200"):
-            print(f"------------------- BIENVENIDO {nombre_usu.upper()} -------------------\n")
-            while True:
-                print("MENÚ:")
-                print("1. Ver ranking")
-                print("2. Enviar datos")
-                print("3. Salir")
+        enviar_mensaje(s, f"USER {username}\r\n")
+        response = recibir_mensaje(s)
+        if response.startswith("200"):
+            enviar_mensaje(s, f"PASS {password}\r\n")
+            response = recibir_mensaje(s)
+            return response.startswith("200")
+    return False
 
-                seleccion = int(input("Elige una opción: "))
-                if 1 > seleccion > 3:
-                    print("Selecciona una opción valida del menú")
-                elif seleccion == 1:
-                    s.send("GET_LEADERBOARD\r\n".encode())
-                    mensaje_rx = s.recv(2048)
-                    mensaje_descifrado = mensaje_rx.decode()
-                    ranking = []
-                    if mensaje_descifrado.startswith("400"):
-                        print("Error en el comando GET_LEADERBOARD:", mensaje_descifrado)
-                    elif mensaje_descifrado.startswith("200"):
-                        print("Tabla de clasificación:")
-                        while True:
-                            respuesta = s.recv(1024).decode()
-                            if respuesta.startswith("202"):
-                                break
-                            else:
-                                ranking.append(respuesta[:])
-                        parsed_ranking = []
-                        for respuesta in ranking:
-                            try:
-                                json_data = json.loads(respuesta.strip())
-                                parsed_ranking.append(json_data)
-                            except json.JSONDecodeError as e:
-                                print(f"Error al decodificar JSON: {e}")
-                    else:
-                        print("Respuesta inesperada del servidor.")
-                elif seleccion == 2:
-                    nombre = input("Nombre: ")
-                    grupo_Promu = input("Grupo promu: ")
-                    altura = input("Altura: ")
-                    fecha = input("Fecha: ")
-
-                    mensaje_final = 'SEND_DATA {"nombre":'+nombre+',"grupo_ProMu":'+grupo_Promu+',"altura":'+altura+',"fecha":'+fecha+'}\r\n'
-
-                    s.send(mensaje_final.encode())
-                    mensaje_rx = s.recv(2048)
-                    time.sleep(1)
-                    print(mensaje_rx.decode())
-                else:
-                    s.send("QUIT\r\n".encode())
-                    s.close()
-                    break
+def get_leaderboard(s):
+    enviar_mensaje(s, "GET_LEADERBOARD\r\n")
+    response = recibir_mensaje(s)
+    if response.startswith("400"):
+        print("Error en el comando GET_LEADERBOARD:", response)
+        return []
+    elif response.startswith("200"):
+        ranking = []
+        while True:
+            response = recibir_mensaje(s, 1024)
+            if response.startswith("202"):
+                break
+            else:
+                ranking.append(response.strip())
+        parsed_ranking = []
+        for item in ranking:
+            try:
+                json_data = json.loads(item)
+                parsed_ranking.append(json_data)
+            except json.JSONDecodeError as e:
+                print(f"Error al decodificar JSON: {e}")
+        return parsed_ranking
     else:
-        print(mensaje_rx.decode())
+        print("Respuesta inesperada del servidor.")
+        return []
 
-print("SESIÓN FINALIZADA")
+def send_data(s, data):
+    nombre = data[0]
+    grupo_Promu = data[1]
+    altura = data[2]
+    fecha = data[3]
+
+    mensaje_final = 'SEND_DATA {"nombre":'+nombre+',"grupo_ProMu":'+grupo_Promu+',"altura":'+altura+',"fecha":'+fecha+'}\r\n'
+    enviar_mensaje(s, mensaje_final)
+    response = recibir_mensaje(s)
+    time.sleep(1)
+    return response
+
+def quit_session(s):
+    enviar_mensaje(s, "QUIT\r\n")
+    s.close()
