@@ -1,11 +1,14 @@
 from guizero import App, Box, Text, PushButton, TextBox, info
-from PROMU.Promu_2024.pantallas.funciones_globales import center_window
+from PROMU.Promu_2024.pantallas.funciones_globales import *
+from PROMU.Promu_2024.pantallas.login.main import *
 
 color_fondo = "#fff5a4"
 color_sidebar = "#fcef89"
-def clear_box(box):
-    for widget in box.children:
-        widget.destroy()
+colores_botones_sidebar = [color_sidebar, "black", color_fondo]
+colores_botones_inter = ["white", "black", "lightgrey"]
+
+def salir(app):
+    mostrar_pantalla_login(app)
 
 def ajustar_texto(texto, max_length):
     if len(texto) > max_length:
@@ -103,8 +106,7 @@ def mostrar_pantalla_realizarSalto(main_content):
     Box(form_box, grid=[0,7,2,1], height=40)
 
     enviarBTN = PushButton(contenido, text="Enviar datos")
-    colores = ["white", "black", "lightgrey"]
-    estilizar_boton(enviarBTN, colores)
+    estilizar_boton(enviarBTN, colores_botones_inter)
 
 def mostrar_pantalla_ranking(main_content, datos_ranking):
     clear_box(main_content)
@@ -157,7 +159,8 @@ datos_ranking = [
     {'nombre': 'Carlos Gómez', 'grupo': 'A', 'promedio': '9.7', 'altura': '1.78m', 'fecha': '2024-05-20'},
 ]
 
-def mostrar_pantalla_principal():
+def mostrar_pantalla_principal(app):
+    clear_box(app)
     center_window(app, 800, 600)
 
     sidebar = Box(app, align="left", width=150, height="fill")
@@ -173,27 +176,66 @@ def mostrar_pantalla_principal():
     main_content = Box(right_container, align="top", width="fill", height="fill")
     mostrar_pantalla_inicio(main_content)
 
-    def salir():
-        app.destroy()
-
     instruccionesPB = PushButton(sidebar, text="Inicio", align="top", width="fill", height=3, command=lambda: mostrar_pantalla_inicio(main_content))
     instruccionesPB.tk.config(bg=color_sidebar)
     realizarsaltoPB = PushButton(sidebar, text="Realizar salto", align="top", width="fill", height=3, command=lambda: mostrar_pantalla_realizarSalto(main_content))
     realizarsaltoPB.tk.config(bg=color_sidebar)
     rankingPB = PushButton(sidebar, text="Ranking", align="top", width="fill", height=3, command=lambda: mostrar_pantalla_ranking(main_content, datos_ranking))
     rankingPB.tk.config(bg=color_sidebar)
-    salirPB = PushButton(sidebar, text="Salir", align="bottom", width="fill", height=3, command=salir)
+    salirPB = PushButton(sidebar, text="Salir", align="bottom", width="fill", height=3, command=lambda: salir(app))
     salirPB.tk.config(bg=color_sidebar)
 
-    colores = [color_sidebar, "black", color_fondo]
+    estilizar_boton(instruccionesPB, colores_botones_sidebar)
+    estilizar_boton(realizarsaltoPB, colores_botones_sidebar)
+    estilizar_boton(rankingPB, colores_botones_sidebar)
+    estilizar_boton(salirPB, colores_botones_sidebar)
 
-    estilizar_boton(instruccionesPB, colores)
-    estilizar_boton(realizarsaltoPB, colores)
-    estilizar_boton(rankingPB, colores)
-    estilizar_boton(salirPB, colores)
+def enviar_datos_login(app, userTxTBox, passTxTBox):
+    username = userTxTBox.value
+    password = passTxTBox.value
+    if login(iniciar_conexion(), username, password):
+        mostrar_pantalla_login(app)
+    else:
+        mostrar_pantalla_principal(app)
 
-    app.display()
+def mostrar_pantalla_login(app):
+    clear_box(app)
+
+    box = Box(app, align="top", width="fill", height="fill")
+    box.tk.pack_propagate(0)
+
+    image_container = Box(box, align="top", width=800, height=600)
+    picture = Picture(image_container, width=1000, height=600, align="top")
+    load_image(picture, "../../imagenes/fondo_login.jpg")
+    picture.tk.place(x=0, y=0, relwidth=1, relheight=1)
+
+    form_container = Box(box, align="top", width="fill", height="fill")
+    form_container.tk.place(x=0, y=0, relwidth=1, relheight=1)
+    form_container.tk.lift()
+
+    form_box = Box(form_container, layout="grid", align="top")
+    form_box.tk.place(relx=0.5, rely=0.5, anchor="center")
+
+    Text(form_box, text="Usuario: ", grid=[0, 0], align="left")
+    userTxTBox = TextBox(form_box, text="", grid=[1, 0], width=30)
+    userTxTBox.tk.config(bg="white")
+
+    Text(form_box, text="Contraseña: ", grid=[0, 1], align="left")
+    passTxTBox = TextBox(form_box, text="", grid=[1, 1], width=30)
+    passTxTBox.tk.config(bg="white")
+
+    Box(form_box, grid=[0, 3, 2, 1], height=30)
+
+    button_container = Box(form_box, grid=[0, 4, 2, 1], align="top", width="fill")
+    sendPB = PushButton(button_container, text="Iniciar sesión", align="top", command=lambda: enviar_datos_login(app, userTxTBox, passTxTBox))
+    estilizar_boton(sendPB, colores_botones_inter)
+
+    Box(box, width="fill", height=100, align="top")
+
 
 if __name__ == "__main__":
-    app = App(title="PikLeap", width=800, height=600)
-    mostrar_pantalla_principal()
+    app = App(title="PikLeap", width=800, height=600, bg="#fff5a4")
+    app.tk.resizable(False, False)
+    mostrar_pantalla_login(app)
+    center_window(app, 800, 600)
+    app.display()

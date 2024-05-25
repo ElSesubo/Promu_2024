@@ -13,3 +13,8 @@ def load_image(picture,ruta):
         picture.image = image_path
     else:
         print(f"Image not found at {image_path}")
+
+def clear_box(box):
+    while box.children:
+        for widget in box.children:
+            widget.destroy()
