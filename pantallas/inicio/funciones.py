@@ -28,7 +28,8 @@ temas = {
         "color_texto": "black",
         "color_titulos": "#31c816",
         "color_sidebar": "#fcef89",
-        "colores_botones_sidebar": [color_sidebar, "#000000", "#fff5a4"],
+        "colores_botones_sidebar": ["#fcef89", "#000000", "#fff5a4"],
+        "colores_resultados": "white",
         "fondo_login": "../../imagenes/fondo_login.png",
         "fondo_inicio": "../../imagenes/fondo_inicio.png",
         "fondo_ranking": "../../imagenes/fondo_ranking.png",
@@ -44,6 +45,7 @@ temas = {
         "color_titulos": "#31c816",
         "color_sidebar": "#1E1E1E",
         "colores_botones_sidebar": ["#1E1E1E", "#FFFFFF", "#555555"],
+        "colores_resultados": ["#270F26", "#0F2327", "#0F2327", "#262829", "#100F27", "#27110F", "#27240F", "#14270F", "#270F21"],
         "fondo_login": "../../imagenes/fondo_login_osc.png",
         "fondo_inicio": "../../imagenes/fondo_inicio_osc.png",
         "fondo_ranking": "../../imagenes/fondo_ranking_osc.png",
@@ -60,6 +62,7 @@ color_texto = temas[tema_actual]["color_texto"]
 color_titulos = temas[tema_actual]["color_titulos"]
 color_sidebar = temas[tema_actual]["color_sidebar"]
 colores_botones_sidebar = temas[tema_actual]["colores_botones_sidebar"]
+colores_resultados = temas[tema_actual]["colores_resultados"]
 fondo_login = temas[tema_actual]["fondo_login"]
 fondo_inicio = temas[tema_actual]["fondo_inicio"]
 fondo_ranking = temas[tema_actual]["fondo_ranking"]
@@ -68,13 +71,14 @@ fondo_configuracion = temas[tema_actual]["fondo_configuracion"]
 fondos_resultados = temas[tema_actual]["fondos_resultados"]
 
 def aplicar_tema(tema):
-    global color_fondo, color_texto, color_sidebar, color_titulos, colores_botones_sidebar, fondo_login, fondo_inicio, fondo_ranking, fondo_realizar_salto, fondo_configuracion, fondos_resultados
+    global color_fondo, color_texto, color_sidebar, color_titulos, colores_botones_sidebar, fondo_login, fondo_inicio, fondo_ranking, fondo_realizar_salto, fondo_configuracion, fondos_resultados, colores_resultados
 
     color_fondo = tema["color_fondo"]
     color_texto = tema["color_texto"]
     color_titulos = tema["color_titulos"]
     color_sidebar = tema["color_sidebar"]
     colores_botones_sidebar = tema["colores_botones_sidebar"]
+    colores_resultados = tema["colores_resultados"]
     fondo_login = tema["fondo_login"]
     fondo_inicio = tema["fondo_inicio"]
     fondo_ranking = tema["fondo_ranking"]
@@ -83,12 +87,25 @@ def aplicar_tema(tema):
     fondos_resultados = tema["fondos_resultados"]
 
 def importar_datos(fichero):
-    data = pd.read_excel(fichero)
-    t = data.values[:,0].astype(float)
-    a = data.values[:,1].astype(float)
-    ax = np.array(data['ax'])
-    ay = np.array(data['ay'])
-    az = np.array(data['az'])
+    if fichero.endswith('.csv'):
+        data = pd.read_csv(fichero, delimiter=';', skipinitialspace=True)
+    elif fichero.endswith('.xlsx'):
+        data = pd.read_excel(fichero, engine='openpyxl')
+    else:
+        raise ValueError("Formato de archivo no soportado. Por favor, selecciona un archivo CSV o Excel.")
+
+    expected_columns = ['t', 'a', 'ax', 'ay', 'az']
+    if not all(col in data.columns for col in expected_columns):
+        raise ValueError(f"El archivo debe contener las siguientes columnas: {expected_columns}")
+
+    # Convertir columnas a numéricas, reemplazando errores con NaN y eliminando filas con NaN
+    data = data.apply(pd.to_numeric, errors='coerce').dropna()
+
+    t = data['t'].astype(float)
+    a = data['a'].astype(float)
+    ax = data['ax'].astype(float)
+    ay = data['ay'].astype(float)
+    az = data['az'].astype(float)
     return t, a, ax, ay, az
 
 def load_translations(file_path):
@@ -235,6 +252,55 @@ def calcular_altura_salto(v_max, g_medida, t_vuelo):
     H_b = (g_medida * (t_vuelo / 2) ** 2) / 2
     return H_a, H_b
 
+def calcular_datos_salto(fichero):
+    print("Cargando datos del archivo...")
+    t, a, ax, ay, az = importar_datos(fichero)
+    print("Datos cargados correctamente.")
+
+    representar_figuras(t, ax, ay, az, a)
+    a_fixed = corregir_aceleracion(a, ay)
+    representar_aceleracion_corregida(t, a, a_fixed)
+
+    print("Recortando datos...")
+    t_recortada, a_recortada, start_index, end_index = recortar_datos(t, a_fixed, 0.5, 3)
+    print("Datos recortados.")
+
+    t_reposo, a_reposo = combinar_reposo(t, a_fixed, 0.5)
+    t_combinada = np.concatenate((t_reposo, t_recortada + t_reposo[-1] + (t[1] - t[0])))
+    a_combinada = np.concatenate((a_reposo, a_recortada))
+    a_filtrada = aplicar_filtro_savgol(t_combinada, a_combinada)
+    representar_señal_suavizada(t_combinada, a_combinada, a_filtrada)
+
+    print("Obteniendo instantes clave...")
+    t1, t2, t3, t1_index, t2_index, t3_index = obtener_instantes_clave(t_combinada, a_filtrada)
+    a_t1, a_t2, a_t3 = a_filtrada[t1_index], a_filtrada[t2_index], a_filtrada[t3_index]
+    representar_instantes_clave(t_combinada, a_filtrada, t1, t2, t3, a_t1, a_t2, a_t3)
+
+    g_medida = np.mean(a_filtrada[:t1_index])
+    F = calcular_fuerza_salto(a_filtrada, g_medida)
+    representar_fuerza_salto(t_combinada, a_filtrada, t2, a_t2)
+
+    v_recortada, t_v_recortada, v_max, t_v_max = calcular_velocidad_salto(t_combinada, a_filtrada, g_medida, start_index, end_index)
+    t_fin_impulso = t_v_max
+    v_min = np.min(v_recortada)
+    ind_v_min = np.argmin(v_recortada)
+    t_v_min = t_v_recortada[ind_v_min]
+    t_fin_vuelo = t_v_min
+    t_vuelo = t_fin_vuelo - t_fin_impulso
+    representar_velocidad_salto(t_v_recortada, v_recortada, t_v_max, v_max, t_fin_impulso, t_fin_vuelo)
+
+    P = calcular_potencia_salto(F, v_recortada, start_index, end_index)
+    t_recortado = t_combinada[start_index:end_index + 1]
+    p_max = np.max(P)
+    ind_p_max = np.argmax(P)
+    t_p_max = t_recortado[ind_p_max]
+    representar_potencia_salto(t_recortado, P, t_p_max, p_max)
+
+    H_a, H_b = calcular_altura_salto(v_max, g_medida, t_vuelo)
+    print(f'Altura del salto a partir de la velocidad de despegue: {H_a:.2f} m')
+    print(f'Altura del salto a partir del tiempo de vuelo: {H_b:.2f} m')
+    return H_a
+
 def salir(app):
     mostrar_pantalla_login(app)
 
@@ -304,48 +370,27 @@ def cambiar_idioma(idioma):
     global idioma_actual
     idioma_actual = idioma
 
+def recortar_datos(t, a, umbral, duracion_min):
+    # Encontrar el índice donde la aceleración supera el umbral
+    start_indices = np.where(a > umbral)[0]
+    if len(start_indices) == 0:
+        raise ValueError("No se encontraron datos que superen el umbral.")
 
-def calcular_datos_salto(fichero):
-    t, a, ax, ay, az = importar_datos(fichero)
-    representar_figuras(t, ax, ay, az, a)
-    a_fixed = corregir_aceleracion(a, ay)
-    representar_aceleracion_corregida(t, a, a_fixed)
+    start_index = start_indices[0]
 
-    t_recortada, a_recortada, start_index, end_index = recortar_datos(t, a_fixed, 0.5, 3)
-    t_reposo, a_reposo = combinar_reposo(t, a_fixed, 0.5)
-    t_combinada = np.concatenate((t_reposo, t_recortada + t_reposo[-1] + (t[1] - t[0])))
-    a_combinada = np.concatenate((a_reposo, a_recortada))
-    a_filtrada = aplicar_filtro_savgol(t_combinada, a_combinada)
-    representar_señal_suavizada(t_combinada, a_combinada, a_filtrada)
+    # Encontrar el índice donde la duración es suficiente
+    end_index = start_index + int(duracion_min / (t[1] - t[0]))
+    if end_index >= len(t):
+        end_index = len(t) - 1
 
-    t1, t2, t3, t1_index, t2_index, t3_index = obtener_instantes_clave(t_combinada, a_filtrada)
-    a_t1, a_t2, a_t3 = a_filtrada[t1_index], a_filtrada[t2_index], a_filtrada[t3_index]
-    representar_instantes_clave(t_combinada, a_filtrada, t1, t2, t3, a_t1, a_t2, a_t3)
+    # Verificar que los índices son válidos
+    if start_index < 0 or end_index < 0 or start_index >= len(t) or end_index >= len(t):
+        raise IndexError("Los índices de recorte son inválidos.")
 
-    g_medida = np.mean(a_filtrada[:t1_index])
-    F = calcular_fuerza_salto(a_filtrada, g_medida)
-    representar_fuerza_salto(t_combinada, a_filtrada, t2, a_t2)
+    t_recortada = t[start_index:end_index] - t[start_index]
+    a_recortada = a[start_index:end_index]
 
-    v_recortada, t_v_recortada, v_max, t_v_max = calcular_velocidad_salto(t_combinada, a_filtrada, g_medida, start_index, end_index)
-    t_fin_impulso = t_v_max
-    v_min = np.min(v_recortada)
-    ind_v_min = np.argmin(v_recortada)
-    t_v_min = t_v_recortada[ind_v_min]
-    t_fin_vuelo = t_v_min
-    t_vuelo = t_fin_vuelo - t_fin_impulso
-    representar_velocidad_salto(t_v_recortada, v_recortada, t_v_max, v_max, t_fin_impulso, t_fin_vuelo)
-
-    P = calcular_potencia_salto(F, v_recortada, start_index, end_index)
-    t_recortado = t_combinada[start_index:end_index + 1]
-    p_max = np.max(P)
-    ind_p_max = np.argmax(P)
-    t_p_max = t_recortado[ind_p_max]
-    representar_potencia_salto(t_recortado, P, t_p_max, p_max)
-
-    H_a, H_b = calcular_altura_salto(v_max, g_medida, t_vuelo)
-    print(f'Altura del salto a partir de la velocidad de despegue: {H_a:.2f} m')
-    print(f'Altura del salto a partir del tiempo de vuelo: {H_b:.2f} m')
-    return H_a
+    return t_recortada, a_recortada, start_index, end_index
 
 def mostrar_pantalla_realizarSalto(main_content):
     clear_box(main_content)
@@ -426,12 +471,76 @@ def mostrar_pantalla_realizarSalto(main_content):
     top_box = Box(contenido, grid=[0, 8], width="fill", height=30)
     top_box.tk.config(bg=color_fondo)
 
-    #realizar calculos
-    resultado = 0
-
     imagen_boton = crear_imagen_texto("Enviar datos", 150, 35, 0, "white", "black", fuente_subtitulos, 14)
-    enviarBTN = PushButton(contenido, text="Enviar datos", grid=[0, 9], image=imagen_boton, command=lambda: mostrar_pantalla_resultados(main_content, resultado))
+    enviarBTN = PushButton(contenido, text="Enviar datos", grid=[0, 9], image=imagen_boton, command=lambda: mostrar_pantalla_resultados(main_content))
     estilizar_boton(enviarBTN, colores)
+
+def mostrar_pantalla_resultados(main_content):
+    clear_box(main_content)
+
+    #resultado = calcular_datos_salto(archivo_seleccionado)
+    #print(resultado)
+    canvas = tk.Canvas(main_content.tk, width=650, height=600, highlightthickness=0)  # Quitar el borde del canvas
+    canvas.place(x=0, y=0, anchor="nw")
+    resultado = 34
+    color_diapo = ""
+    if resultado <= 18:
+        load_image(canvas, fondos_resultados[6], [650, 600])
+        if len(colores_resultados) > 1:
+            color_diapo = colores_resultados[0]
+    elif 18 < resultado <= 22.32:
+        load_image(canvas, fondos_resultados[5], [650, 600])
+        if len(colores_resultados) > 1:
+            color_diapo = colores_resultados[1]
+    elif 22.32 < resultado <= 24.29:
+        load_image(canvas, fondos_resultados[-1], [650, 600])
+        if len(colores_resultados) > 1:
+            color_diapo = colores_resultados[2]
+    elif 24.29 < resultado <= 27.29:
+        load_image(canvas, fondos_resultados[7], [650, 600])
+        if len(colores_resultados) > 1:
+            color_diapo = colores_resultados[3]
+    elif 27.29 < resultado <= 30.06:
+        load_image(canvas, fondos_resultados[3], [650, 600])
+        if len(colores_resultados) > 1:
+            color_diapo = colores_resultados[4]
+    elif 30.06 < resultado <= 33.63:
+        load_image(canvas, fondos_resultados[0], [650, 600])
+        if len(colores_resultados) > 1:
+            color_diapo = colores_resultados[5]
+    elif 33.63 < resultado <= 36.98:
+        load_image(canvas, fondos_resultados[2], [650, 600])
+        if len(colores_resultados) > 1:
+            color_diapo = colores_resultados[6]
+    elif 36.98 < resultado <= 43.49:
+        load_image(canvas, fondos_resultados[1], [650, 600])
+        if len(colores_resultados) > 1:
+            color_diapo = colores_resultados[7]
+    elif resultado > 43.49:
+        load_image(canvas, fondos_resultados[4], [650, 600])
+        if len(colores_resultados) > 1:
+            color_diapo = colores_resultados[8]
+
+    contenido = Box(main_content, layout="grid", align="top", width="fill", height="fill")
+    contenido.tk.place(relx=0.5, rely=0, anchor="n")
+    contenido.tk.config(bg='', padx=0, pady=0)
+
+    top_box = Box(contenido, grid=[0, 0], width="fill", height=71)
+    top_box.tk.config(bg='#E73734')
+    top_box = Box(contenido, grid=[0, 1], width="fill", height=20)
+    titulo_box = Box(contenido, grid=[0, 2], align="top", width="fill")
+    if len(colores_resultados) == 1:
+        top_box.tk.config(bg='white')
+        imagen_texto = crear_imagen_texto("Realizar salto", 200, 40, 0, "white", color_texto, fuente_titulos, 30)
+        titulo = tk.Label(titulo_box.tk, image=imagen_texto, bg='white')
+    else:
+        top_box.tk.config(bg=color_diapo)
+        imagen_texto = crear_imagen_texto("Realizar salto", 200, 40, 0, color_diapo, color_texto, fuente_titulos, 30)
+        titulo = tk.Label(titulo_box.tk, image=imagen_texto, bg=color_diapo)
+
+    titulo.grid(row=0, column=0, sticky="nsew")
+    titulo_box.tk.grid_columnconfigure(0, weight=1)
+    titulo.image = imagen_texto
 
 def mostrar_pantalla_inicio(main_content):
     clear_box(main_content)
@@ -679,29 +788,6 @@ def crear_imagen_texto(texto, width, height, radio, color_fondo, color_texto, ru
     draw.text((pos_x, pos_y), texto, font=fuente_titulos, fill=color_texto)
 
     return ImageTk.PhotoImage(imagen)
-
-def mostrar_pantalla_resultados(main_content, datos_salto):
-    clear_box(main_content)
-
-    canvas = tk.Canvas(main_content.tk, width=650, height=600, highlightthickness=0)  # Quitar el borde del canvas
-    canvas.place(x=0, y=0, anchor="nw")
-    load_image(canvas, "../../imagenes/fondos_resultados/4.png", [650, 600])
-
-    contenido = Box(main_content, layout="grid", align="top", width="fill", height="fill")
-    contenido.tk.place(relx=0.5, rely=0, anchor="n")
-    contenido.tk.config(bg='', padx=0, pady=0)
-
-    top_box = Box(contenido, grid=[0, 0], width="fill", height=71)
-    top_box.tk.config(bg='#E73734')
-    top_box = Box(contenido, grid=[0, 1], width="fill", height=20)
-    top_box.tk.config(bg='white')
-
-    titulo_box = Box(contenido, grid=[0, 2], align="top", width="fill")
-    imagen_texto = crear_imagen_texto("Realizar salto", 200, 40, 0, "white", color_texto, fuente_titulos, 30)
-    titulo = tk.Label(titulo_box.tk, image=imagen_texto, bg='white')
-    titulo.grid(row=0, column=0, sticky="nsew")
-    titulo_box.tk.grid_columnconfigure(0, weight=1)
-    titulo.image = imagen_texto
 
 
 def mostrar_pantalla_principal(app):
