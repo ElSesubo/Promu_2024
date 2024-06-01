@@ -1,8 +1,9 @@
+import datetime
 import json
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from PIL import ImageDraw, ImageFont
 from guizero import App, Box, Text, PushButton, TextBox, info
-from ClienteTCP import login, iniciar_conexion
+from ClienteTCP import login, iniciar_conexion, get_leaderboard, send_data, quit_session
 from funciones_globales import *
 import pandas as pd
 import numpy as np
@@ -16,27 +17,13 @@ pygame.mixer.init()
 
 colores_botones_inter = ["white", "black", "lightgrey"]
 tema_actual = "Claro"
-idioma_actual = "Español"
+idioma_actual = "es"
 volumen_actual = 100
 fuente_subtitulos = "../../fuentes/Nunito-Bold.ttf"
 fuente_titulos = "../../fuentes/Nunito-ExtraBold.ttf"
 fuente_texto = "../../fuentes/Nunito-Medium.ttf"
 archivo_seleccionado = None
-
-datos_ranking = [
-    {'nombre': 'Juan Pérez', 'grupo': 'A', 'promedio': '9.5', 'altura': '1.80m', 'fecha': '2024-05-22'},
-    {'nombre': 'Ana López', 'grupo': 'B', 'promedio': '9.8', 'altura': '1.75m', 'fecha': '2024-05-21'},
-    {'nombre': 'Carlos Gómez', 'grupo': 'A', 'promedio': '9.7', 'altura': '1.78m', 'fecha': '2024-05-20'},
-    {'nombre': 'Juan Pérez', 'grupo': 'A', 'promedio': '9.5', 'altura': '1.80m', 'fecha': '2024-05-22'},
-    {'nombre': 'Ana López', 'grupo': 'B', 'promedio': '9.8', 'altura': '1.75m', 'fecha': '2024-05-21'},
-    {'nombre': 'Carlos Gómez', 'grupo': 'A', 'promedio': '9.7', 'altura': '1.78m', 'fecha': '2024-05-20'},
-    {'nombre': 'Juan Pérez', 'grupo': 'A', 'promedio': '9.5', 'altura': '1.80m', 'fecha': '2024-05-22'},
-    {'nombre': 'Ana López', 'grupo': 'B', 'promedio': '9.8', 'altura': '1.75m', 'fecha': '2024-05-21'},
-    {'nombre': 'Carlos Gómez', 'grupo': 'A', 'promedio': '9.7', 'altura': '1.78m', 'fecha': '2024-05-20'},
-    {'nombre': 'Juan Pérez', 'grupo': 'A', 'promedio': '9.5', 'altura': '1.80m', 'fecha': '2024-05-22'},
-    {'nombre': 'Ana López', 'grupo': 'B', 'promedio': '9.8', 'altura': '1.75m', 'fecha': '2024-05-21'},
-    {'nombre': 'Carlos Gómez', 'grupo': 'A', 'promedio': '9.7', 'altura': '1.78m', 'fecha': '2024-05-20'},
-]
+server = None
 
 temas = {
      "Claro": {
@@ -46,6 +33,7 @@ temas = {
         "color_sidebar": "#fcef89",
         "colores_botones_sidebar": ["#fcef89", "#000000", "#fff5a4"],
         "colores_resultados": "white",
+        "colores_fondos_resultados": ["#954C8D", "#646666", "#98F4F8", "#E9EBE7", "#3D88F5", "#E73734", "#F4D71C", "#80DF37", "#F681AF"],
         "fondo_login": "../../imagenes/fondo_login.png",
         "fondo_inicio": "../../imagenes/fondo_inicio.png",
         "fondo_ranking": "../../imagenes/fondo_ranking.png",
@@ -62,6 +50,7 @@ temas = {
         "color_sidebar": "#1E1E1E",
         "colores_botones_sidebar": ["#1E1E1E", "#FFFFFF", "#555555"],
         "colores_resultados": ["#270F26", "#0F2327", "#0F2327", "#262829", "#100F27", "#27110F", "#27240F", "#14270F", "#270F21"],
+        "colores_fondos_resultados": ["#5D254D", "#646666", "#6FCCD5", "#B9BFB2", "#1E56D6", "#C62321", "#D1B70E", "#61B222", "#DF6192"],
         "fondo_login": "../../imagenes/fondo_login_osc.png",
         "fondo_inicio": "../../imagenes/fondo_inicio_osc.png",
         "fondo_ranking": "../../imagenes/fondo_ranking_osc.png",
@@ -74,7 +63,7 @@ temas = {
 }
 
 textos = {
-    "English": {
+    "en": {
         "pikmin_morado": ["Scientific Name: Pikminidae yokozunum. Its size is only slightly larger than other Pikmin species, but its density is so great that they weigh about ten times more, to the point that when thrown against the ground, they create intense gravitational waves capable of, incredibly, distorting space-time itself! Their muscle fibers are also ten times denser, allowing them to carry ten times more weight than their relatives. The intense purple color is due to powerful antioxidant polyphenols."],
         "pikmin_rojo": ["Scientific Name: Pikminidae rubrus. In addition to their color, they are identified by a pointed nasal protrusion and their especially aggressive behavior. They also possess peculiar qualities such as immunity to heat and fire, which is unheard of in living organisms but is explained by observing their epidermis and muscle fibers, which are composed of fire-resistant cellulose."],
         "pikmin_azul": ["Scientific Name: Pikminidae caerula. Blue Pikmin (who sprout leaves and flowers like any terrestrial Pikmin) breathe on land through the stomata in their epidermis and in water through a gill on their head that looks like a mouth; in short, they are perfectly amphibious. The proteins in their skin pigments perform a function analogous to the photosynthesis of cyanobacteria, which gives them their striking coloration."],
@@ -84,6 +73,15 @@ textos = {
         "pikmin_blanco": ["Scientific Name: Pikminidae venalbius. The poison in their bodies is a diterpene alkaloid similar to a toxin present in some roots. Ingestion can cause nausea, lung problems, and even total organ collapse, leading to death by cardiorespiratory arrest. Despite the potency of this poison, it can be used to create a medicinal substance known as aconite."],
         "pikmin_gélido": ["Scientific Name: Pikminidae habiglacius. Icy Pikmin are parasitic in nature and use ice as a host. This ice is primarily composed of water, as expected, but resembles a saline solution with low concentrations of sodium, potassium, and calcium ions that act as neurotransmitters. Interestingly, the ice shows no signs of melting when exposed to direct sunlight. This is due to the low temperature of the core, which continuously generates ice to maintain a stable size."],
         "pikmin_luminoso": ["Scientific Name: Pikminidae supravelum. These creatures share essential traits with all Pikmin: they have a leaf on their head and fight, carry weights, and propagate in similar ways. However, they do not sprout from an Onion but from Glowcaps, and their activity is exclusively nocturnal or underground. During the day, they revert to seeds and enter a dormant state. Most surprisingly, luminous Pikmin show no signs of life or vital reactions. When one dies, it transforms into light and returns to the Glowcap."],
+        "pikmin_1": "Purple pikmin",
+        "pikmin_2": "Rock pikmin",
+        "pikmin_3": "Ice pikmin",
+        "pikmin_4": "White pikmin",
+        "pikmin_5": "Blue pikmin",
+        "pikmin_6": "Red pikmin",
+        "pikmin_7": "Yellow pikmin",
+        "pikmin_8": "Pikmin luminoso",
+        "pikmin_9": "Winged pikmin",
         "REALIZAR SALTO": "PERFORM JUMP",
         "Seleccionar datos del salto: ": "Select jump data: ",
         "Seleccionar Archivo": "Select File",
@@ -117,9 +115,16 @@ textos = {
         "Configuración": "Settings",
         "Iniciar sesión": "Login",
         "Usuario: ": "Username:",
-        "Contraseña: ": "Password:"
+        "Contraseña: ": "Password:",
+        "Confirmacion": "Confirmation",
+        "Resultados_Salto_Si": "Your results make it to the ranking",
+        "Resultados_Salto_No": "Your results didn't make it to the ranking",
+        "Obligatorio": "Fields must be filled",
+        "Numerico": "You must introduce a number",
+        "LoginIncorrecto": "Incorrect user or password",
+        "Continuar": "Are you sure you want to continue?",
     },
-    "Español":{
+    "es":{
         "pikmin_morado": ["Nombre científico: Pikminidae yokozunum. Su tamaño es apenas algo mayor que el de otras especies de Pikmin, pero su densidad es tan grande que pesan alrededor de diez veces más, hasta el punto de que, al lanzarlos contra el suelo, crean intensas ondas gravitatorias capaces, por increíble que parezca, ¡de distorsionar el mismísimo espacio-tiempo! Sus fibras musculares también son diez veces más densas, lo que les permite transportar diez veces más peso que sus parientes. El intenso color morado se debe a unos potentes polifenoles antioxidantes."],
         "pikmin_rojo": ["Nombre científico: Pikminidae rubrus. Además de por su color, se les identifica por una puntiaguda protuberancia nasal y por su comportamiento especialmente agresivo. Además, posee ciertas cualidades peculiares, como la inmunidad al calor y al fuego, algo inaudito en organismos vivos, pero que se explica al observar su epidermis y las fibras musculares, que se componen de una celulosa ignífuga."],
         "pikmin_azul": ["Nombre científico: Pikminidae caerula. Los Pikmin azules (a quienes les brotan hojas y flores como a cualquier Pikmin terrestre) respiran en tierra mediante los estomas de la epidermis y en el agua mediante una branquia en la cabeza de aspecto similar a una boca; en definitiva: son perfectamente anfibios. Las proteínas de sus pigmentos dérmicos realizan una función análoga a la fotosíntesis de las cianobacterias, lo que les confiere esa coloración tan llamativa."],
@@ -129,6 +134,15 @@ textos = {
         "pikmin_blanco": ["Nombre científico: Pikminidae venalbius. El veneno de sus cuerpos es un diterpeno alcaloide similar a cierta toxina presente en algunas raíces. Su ingestión puede producir náuseas problemas pulmonares e incluso un colapso total de los órganos que podría dar pie a la muerte por paro cardiorrespiratorio. A pesar de la potencia de este veneno, se puede crear con él una sustancia medicinal conocida como acónito."],
         "pikmin_gélido": ["Nombre científico: Pikminidae habiglacius. Los Pikmin gélidos son de naturaleza parasítica y utilizan el hielo como anfitrión. Este hielo se compone principalmente de agua, como era de esperar, pero se asemeja a una solución salina con baja concentración de iones de sodio, de potasio y de calcio que actúan como transmisores neuronales. Curiosamente, el hielo no muestra señales de derretirse al exponerlo a la luz solar directa. Esto se debe a la baja temperatura del núcleo, que sigue generando hielo continuamente con el fin de mantener un tamaño estable."],
         "pikmin_luminoso": ["Nombre científico: Pikminidae supravelum. Estas criaturas comparten rasgos esenciales a todos los Pikmin: tienen una hoja sobre la cabeza y luchan, cargan pesos y se propagan de formas similares. Sin embargo, no brotan de una Cebolla, sino de Lumilomas, y su actividad es exclusivamente nocturna o subterránea. Durante el día, revierten a semillas y entran en letargo. Lo más sorprendente es que los Pikmin luminosos no muestran señales de vida ni reacciones vitales al uso. Cuando uno muere, se transforma en luz y regresa a la Lumiloma."],
+        "pikmin_1": "Pikmin morado",
+        "pikmin_2": "Pikmin pétreo",
+        "pikmin_3": "Pikmin gélido",
+        "pikmin_4": "Pikmin blanco",
+        "pikmin_5": "Pikmin azul",
+        "pikmin_6": "Pikmin rojo",
+        "pikmin_7": "Pikmin amarillo",
+        "pikmin_8": "Pikmin luminoso",
+        "pikmin_9": "Pikmin alado",
         "REALIZAR SALTO": "REALIZAR SALTO",
         "Seleccionar datos del salto: ": "Seleccionar datos del salto: ",
         "Seleccionar Archivo": "Seleccionar Archivo",
@@ -162,7 +176,14 @@ textos = {
         "Configuración": "Configuración",
         "Iniciar sesión": "Iniciar sesión",
         "Usuario: ": "Usuario:",
-        "Contraseña: ": "Contraseña:"
+        "Contraseña: ": "Contraseña:",
+        "Confirmacion": "Confirmación",
+        "Resultados_Salto_Si": "Tus resultados han entrado en la tabla de clasificación",
+        "Resultados_Salto_No": "Tus resultados no han entrado en la tabla de clasificación",
+        "Obligatorio": "Todos los campos son obligatorios.",
+        "Numerico": "El campo tiene que ser numérico.",
+        "LoginIncorrecto": "Usuario o contraseña incorrectos.",
+        "Continuar": "¿Estás seguro de continuar?",
     }
 }
 
@@ -172,6 +193,7 @@ color_titulos = temas[tema_actual]["color_titulos"]
 color_sidebar = temas[tema_actual]["color_sidebar"]
 colores_botones_sidebar = temas[tema_actual]["colores_botones_sidebar"]
 colores_resultados = temas[tema_actual]["colores_resultados"]
+colores_fondos_resultados = temas[tema_actual]["colores_fondos_resultados"]
 fondo_login = temas[tema_actual]["fondo_login"]
 fondo_inicio = temas[tema_actual]["fondo_inicio"]
 fondo_ranking = temas[tema_actual]["fondo_ranking"]
@@ -180,7 +202,7 @@ fondo_configuracion = temas[tema_actual]["fondo_configuracion"]
 fondos_resultados = temas[tema_actual]["fondos_resultados"]
 
 def aplicar_tema(tema):
-    global color_fondo, color_texto, color_sidebar, color_titulos, colores_botones_sidebar, fondo_login, fondo_inicio, fondo_ranking, fondo_realizar_salto, fondo_configuracion, fondos_resultados, colores_resultados
+    global color_fondo, color_texto, color_sidebar, color_titulos, colores_botones_sidebar, fondo_login, fondo_inicio, fondo_ranking, fondo_realizar_salto, fondo_configuracion, fondos_resultados, colores_resultados, colores_fondos_resultados
 
     color_fondo = tema["color_fondo"]
     color_texto = tema["color_texto"]
@@ -188,6 +210,7 @@ def aplicar_tema(tema):
     color_sidebar = tema["color_sidebar"]
     colores_botones_sidebar = tema["colores_botones_sidebar"]
     colores_resultados = tema["colores_resultados"]
+    colores_fondos_resultados = tema["colores_fondos_resultados"]
     fondo_login = tema["fondo_login"]
     fondo_inicio = tema["fondo_inicio"]
     fondo_ranking = tema["fondo_ranking"]
@@ -195,27 +218,11 @@ def aplicar_tema(tema):
     fondo_configuracion = tema["fondo_configuracion"]
     fondos_resultados = tema["fondos_resultados"]
 
-def importar_datos(fichero):
-    if fichero.endswith('.csv'):
-        data = pd.read_csv(fichero, delimiter=';', skipinitialspace=True)
-    elif fichero.endswith('.xlsx'):
-        data = pd.read_excel(fichero, engine='openpyxl')
-    else:
-        raise ValueError("Formato de archivo no soportado. Por favor, selecciona un archivo CSV o Excel.")
-
-    expected_columns = ['t', 'a', 'ax', 'ay', 'az']
-    if not all(col in data.columns for col in expected_columns):
-        raise ValueError(f"El archivo debe contener las siguientes columnas: {expected_columns}")
-
-    # Convertir columnas a numéricas, reemplazando errores con NaN y eliminando filas con NaN
-    data = data.apply(pd.to_numeric, errors='coerce').dropna()
-
-    t = data['t'].astype(float)
-    a = data['a'].astype(float)
-    ax = data['ax'].astype(float)
-    ay = data['ay'].astype(float)
-    az = data['az'].astype(float)
-    return t, a, ax, ay, az
+def insertar_salto_linea_en_punto(texto):
+    punto_index = texto.find('.')
+    if punto_index != -1:
+        return texto[:punto_index + 1] + '\n\n' + texto[punto_index + 1:]
+    return texto
 
 def load_translations(file_path):
     with open(file_path, 'r', encoding='utf-8') as file:
@@ -225,50 +232,66 @@ def load_translations(file_path):
 def get_translation(translations, lang, key):
     return translations[lang].get(key, key)
 
+def importar_datos(fichero):
+    try:
+        data = pd.read_excel(fichero, engine='openpyxl')
+        data = data.replace(',', '.', regex=True)
+        t = data['t'].astype(float).values
+        a = data['a'].astype(float).values
+        ax = data['ax'].astype(float).values
+        ay = data['ay'].astype(float).values
+        az = data['az'].astype(float).values
+    except ValueError as e:
+        print(f"Error al convertir los datos: {e}")
+        return None, None, None, None, None
+    return t, a, ax, ay, az
+
 def representar_figuras(t, ax, ay, az, a):
     plt.figure()
-    plt.plot(t, ax)
-    plt.plot(t, ay)
-    plt.plot(t, az)
-    plt.plot(t, a)
+    plt.plot(t, ax, label='$a_x$')
+    plt.plot(t, ay, label='$a_y$')
+    plt.plot(t, az, label='$a_z$')
+    plt.plot(t, a, label='$||a||$')
     plt.grid('on')
     plt.xlabel('$t$ [s]')
-    plt.ylabel('$a$ [m/s$^2$]')
+    plt.ylabel('$a$ [m/s^2$]')
     plt.title('Datos del acelerómetro')
-    plt.legend(['$a_x$', '$a_y$', '$a_z$', '$||a||$'])
+    plt.legend()
     plt.show()
 
 def corregir_aceleracion(a, ay):
-    return a * np.sign(ay)
+    return np.abs(a) * np.sign(ay)
 
-def representar_aceleracion_corregida(t, a, a_fixed):
+def representar_aceleracion_corregida(t, a_fixed, a):
     plt.figure()
-    plt.plot(t, a_fixed)
-    plt.plot(t, a, '--')
+    plt.plot(t, a_fixed, label='$||a||$ Corregida')
+    plt.plot(t, a, '--', label='$||a||$ Original')
     plt.grid('on')
     plt.xlabel('$t$ [s]')
-    plt.ylabel('$a$ [m/s$^2$]')
+    plt.ylabel('$a$ [m/s^2$]')
     plt.title('Módulo de la aceleración medida')
-    plt.legend(['$||a||$ Corregida', '$||a||$ Original'])
+    plt.legend()
     plt.show()
 
-def recortar_datos(t, a_fixed, start_time, end_time):
-    start_index = np.searchsorted(t, start_time)
-    end_index = np.searchsorted(t, end_time)
+def recortar_combinar_datos(t, a_fixed):
+    start_index = np.searchsorted(t, 0.5)
+    end_index = np.searchsorted(t, 3)
     t_recortada = t[start_index:end_index] - t[start_index]
     a_recortada = a_fixed[start_index:end_index]
-    return t_recortada, a_recortada, start_index, end_index
 
-def combinar_reposo(t, a_fixed, start_time):
-    reposo_indice = np.searchsorted(t, start_time)
+    reposo_indice = np.searchsorted(t, 0.5)
     t_reposo = t[:reposo_indice] - t[0]
     a_reposo = a_fixed[:reposo_indice]
-    return t_reposo, a_reposo
 
-def aplicar_filtro_savgol(t_combinada, a_combinada, window_length=11, polyorder=3):
-    return savgol_filter(a_combinada, window_length=window_length, polyorder=polyorder)
+    t_combinada = np.concatenate((t_reposo, t_recortada + t_reposo[-1] + (t[1] - t[0])))
+    a_combinada = np.concatenate((a_reposo, a_recortada))
 
-def representar_señal_suavizada(t_combinada, a_combinada, a_filtrada):
+    return t_combinada, a_combinada
+
+def aplicar_filtro_savgol(a_combinada):
+    return savgol_filter(a_combinada, window_length=11, polyorder=3)
+
+def representar_senales(t_combinada, a_combinada, a_filtrada):
     plt.figure()
     plt.plot(t_combinada, a_combinada, '-o', label='Corregida', markersize=4)
     plt.plot(t_combinada, a_filtrada, label='Corregida y Filtrada')
@@ -285,7 +308,10 @@ def obtener_instantes_clave(t_combinada, a_filtrada):
     t1 = t_combinada[t1_index]
 
     min_abs_a = np.argmin(np.abs(a_filtrada))
-    t2_index = np.argmax(a_filtrada[:min_abs_a])
+    if min_abs_a == 0:
+        t2_index = 0
+    else:
+        t2_index = np.argmax(a_filtrada[:min_abs_a])
     t2 = t_combinada[t2_index]
 
     t3_index = min_abs_a + np.argmax(np.abs(np.gradient(a_filtrada[min_abs_a:])) > 0.1)
@@ -293,7 +319,11 @@ def obtener_instantes_clave(t_combinada, a_filtrada):
 
     return t1, t2, t3, t1_index, t2_index, t3_index
 
-def representar_instantes_clave(t_combinada, a_filtrada, t1, t2, t3, a_t1, a_t2, a_t3):
+def representar_instantes_clave(t_combinada, a_filtrada, t1, t2, t3, t1_index, t2_index, t3_index):
+    a_t1 = a_filtrada[t1_index]
+    a_t2 = a_filtrada[t2_index]
+    a_t3 = a_filtrada[t3_index]
+
     plt.figure()
     plt.plot(t_combinada, a_filtrada, label='Corregida y Filtrada')
     plt.scatter(t1, a_t1, color='r', label='Inicio de impulso')
@@ -306,11 +336,12 @@ def representar_instantes_clave(t_combinada, a_filtrada, t1, t2, t3, a_t1, a_t2,
     plt.legend()
     plt.show()
 
-def calcular_fuerza_salto(a_filtrada, g_medida, m=75):
+def calcular_fuerza_salto(a_filtrada, g_medida, m):
     a_salt = a_filtrada - g_medida
-    return m * (a_salt + 9.81)
+    F = m * (a_salt + 9.81)
+    return F
 
-def representar_fuerza_salto(t_combinada, a_filtrada, t2, a_t2):
+def representar_fuerza(t_combinada, a_filtrada, t2, a_t2):
     plt.figure()
     plt.plot(t_combinada, a_filtrada)
     plt.scatter(t2, a_t2, color='r', label='Maxima fuerza de salto')
@@ -324,29 +355,30 @@ def calcular_velocidad_salto(t_combinada, a_filtrada, g_medida, start_index, end
     a_nueva = a_filtrada - g_medida
     dt = t_combinada[1] - t_combinada[0]
     v = cumtrapz(a_nueva, dx=dt, initial=0) * dt
+
     v_recortada = v[start_index:end_index + 1]
     t_v_recortada = t_combinada[start_index:end_index + 1]
-    v_max = np.max(v_recortada)
-    ind_v_max = np.argmax(v_recortada)
-    t_v_max = t_v_recortada[ind_v_max]
-    return v_recortada, t_v_recortada, v_max, t_v_max
 
-def representar_velocidad_salto(t_v_recortada, v_recortada, t_v_max, v_max, t_fin_impulso, t_fin_vuelo):
+    return v_recortada, t_v_recortada, dt
+
+def representar_velocidad(t_v_recortada, v_recortada, t_v_max, v_max, t_fin_impulso, t_v_min):
     plt.figure()
     plt.plot(t_v_recortada, v_recortada)
     plt.scatter(t_v_max, v_max, color='r', label='Velocidad máxima durante el despegue')
-    plt.axvspan(t_fin_impulso, t_fin_vuelo, color='purple', alpha=0.3, label='Tiempo de vuelo')
+    plt.axvspan(t_fin_impulso, t_v_min, color='purple', alpha=0.3, label='Tiempo de vuelo')
     plt.grid('on')
     plt.xlabel('$t$ [s]')
     plt.ylabel('$v$ [m/s]')
     plt.title('Velocidad en función del tiempo')
+    plt.legend()
     plt.show()
 
-def calcular_potencia_salto(F, v, start_index, end_index):
-    P = F[start_index:end_index + 1] * v[start_index:end_index + 1]
-    return P
+def calcular_potencia_salto(F, v_recortada, t1_index, t3_index, t_combinada):
+    P = F[t1_index:t3_index + 1] * v_recortada
+    t_recortado = t_combinada[t1_index:t3_index + 1]
+    return P, t_recortado
 
-def representar_potencia_salto(t_recortado, P, t_p_max, p_max):
+def representar_potencia(t_recortado, P, t_p_max, p_max):
     plt.figure()
     plt.plot(t_recortado, P, label='potencia')
     plt.scatter(t_p_max, p_max, color='r', label='potencia maxima')
@@ -354,6 +386,7 @@ def representar_potencia_salto(t_recortado, P, t_p_max, p_max):
     plt.xlabel('$t$ [s]')
     plt.ylabel('$v$ [m/s]')
     plt.title('Potencia en función del tiempo')
+    plt.legend()
     plt.show()
 
 def calcular_altura_salto(v_max, g_medida, t_vuelo):
@@ -361,57 +394,134 @@ def calcular_altura_salto(v_max, g_medida, t_vuelo):
     H_b = (g_medida * (t_vuelo / 2) ** 2) / 2
     return H_a, H_b
 
-def calcular_datos_salto(fichero):
-    print("Cargando datos del archivo...")
+def representar_altura(t_combinada, v, start_index, end_index):
+    dt = t_combinada[1] - t_combinada[0]
+    altura = cumtrapz(v, dx=dt, initial=0)
+    alt_recortada = altura[start_index:end_index + 1]
+    t_alt_recortada = t_combinada[start_index:end_index + 1]
+
+    plt.figure()
+    plt.plot(t_alt_recortada, alt_recortada)
+    plt.grid('on')
+    plt.xlabel('$t$ [s]')
+    plt.ylabel('Altura [m]')
+    plt.title('Altura del salto en función del tiempo')
+    plt.show()
+
+def calcular_datos_salto(fichero, masa):
     t, a, ax, ay, az = importar_datos(fichero)
-    print("Datos cargados correctamente.")
+    if t is None:
+        print("Error al importar datos. Verifique el archivo.")
+        return None
 
-    representar_figuras(t, ax, ay, az, a)
     a_fixed = corregir_aceleracion(a, ay)
-    representar_aceleracion_corregida(t, a, a_fixed)
-
-    print("Recortando datos...")
-    t_recortada, a_recortada, start_index, end_index = recortar_datos(t, a_fixed, 0.5, 3)
-    print("Datos recortados.")
-
-    t_reposo, a_reposo = combinar_reposo(t, a_fixed, 0.5)
-    t_combinada = np.concatenate((t_reposo, t_recortada + t_reposo[-1] + (t[1] - t[0])))
-    a_combinada = np.concatenate((a_reposo, a_recortada))
-    a_filtrada = aplicar_filtro_savgol(t_combinada, a_combinada)
-    representar_señal_suavizada(t_combinada, a_combinada, a_filtrada)
-
-    print("Obteniendo instantes clave...")
+    t_combinada, a_combinada = recortar_combinar_datos(t, a_fixed)
+    a_filtrada = aplicar_filtro_savgol(a_combinada)
     t1, t2, t3, t1_index, t2_index, t3_index = obtener_instantes_clave(t_combinada, a_filtrada)
-    a_t1, a_t2, a_t3 = a_filtrada[t1_index], a_filtrada[t2_index], a_filtrada[t3_index]
-    representar_instantes_clave(t_combinada, a_filtrada, t1, t2, t3, a_t1, a_t2, a_t3)
-
     g_medida = np.mean(a_filtrada[:t1_index])
-    F = calcular_fuerza_salto(a_filtrada, g_medida)
-    representar_fuerza_salto(t_combinada, a_filtrada, t2, a_t2)
-
-    v_recortada, t_v_recortada, v_max, t_v_max = calcular_velocidad_salto(t_combinada, a_filtrada, g_medida, start_index, end_index)
+    F = calcular_fuerza_salto(a_filtrada, g_medida, masa)
+    v_recortada, t_v_recortada, dt = calcular_velocidad_salto(t_combinada, a_filtrada, g_medida, t1_index, t3_index)
+    v_max = np.max(v_recortada)
+    ind_v_max = np.argmax(v_recortada)
+    t_v_max = t_v_recortada[ind_v_max]
     t_fin_impulso = t_v_max
     v_min = np.min(v_recortada)
     ind_v_min = np.argmin(v_recortada)
     t_v_min = t_v_recortada[ind_v_min]
-    t_fin_vuelo = t_v_min
-    t_vuelo = t_fin_vuelo - t_fin_impulso
-    representar_velocidad_salto(t_v_recortada, v_recortada, t_v_max, v_max, t_fin_impulso, t_fin_vuelo)
-
-    P = calcular_potencia_salto(F, v_recortada, start_index, end_index)
-    t_recortado = t_combinada[start_index:end_index + 1]
+    t_vuelo = t_v_min - t_fin_impulso
+    P, t_recortado = calcular_potencia_salto(F, v_recortada, t1_index, t3_index, t_combinada)
     p_max = np.max(P)
     ind_p_max = np.argmax(P)
     t_p_max = t_recortado[ind_p_max]
-    representar_potencia_salto(t_recortado, P, t_p_max, p_max)
-
     H_a, H_b = calcular_altura_salto(v_max, g_medida, t_vuelo)
     print(f'Altura del salto a partir de la velocidad de despegue: {H_a:.2f} m')
     print(f'Altura del salto a partir del tiempo de vuelo: {H_b:.2f} m')
-    return H_a
+
+    datos = {
+        't': t, 'ax': ax, 'ay': ay, 'az': az, 'a': a, 'a_fixed': a_fixed,
+        't_combinada': t_combinada, 'a_combinada': a_combinada, 'a_filtrada': a_filtrada,
+        't1': t1, 't2': t2, 't3': t3, 't1_index': t1_index, 't2_index': t2_index, 't3_index': t3_index,
+        'v_recortada': v_recortada, 't_v_recortada': t_v_recortada, 't_v_max': t_v_max,
+        'v_max': v_max, 't_v_min': t_v_min, 'v_min': v_min, 'P': P, 't_recortado': t_recortado, 't_p_max': t_p_max, 'p_max': p_max,
+        'start_index': t1_index, 'end_index': t3_index
+    }
+
+    return H_b, datos
+
+def representar_todos_los_datos(datos):
+    fig, axs = plt.subplots(3, 2, figsize=(14, 18))
+
+    # Gráfico de aceleraciones originales
+    axs[0, 0].plot(datos['t'], datos['ax'], label='ax')
+    axs[0, 0].plot(datos['t'], datos['ay'], label='ay')
+    axs[0, 0].plot(datos['t'], datos['az'], label='az')
+    axs[0, 0].plot(datos['t'], datos['a'], label='a')
+    axs[0, 0].set_title('Aceleraciones originales')
+    axs[0, 0].set_xlabel('Tiempo [s]')
+    axs[0, 0].set_ylabel('Aceleración [m/s²]')
+    axs[0, 0].grid(True)
+    axs[0, 0].legend()
+
+    # Gráfico de aceleración corregida
+    axs[0, 1].plot(datos['t'], datos['a_fixed'], label='a corregida')
+    axs[0, 1].set_title('Aceleración corregida')
+    axs[0, 1].set_xlabel('Tiempo [s]')
+    axs[0, 1].set_ylabel('Aceleración [m/s²]')
+    axs[0, 1].grid(True)
+    axs[0, 1].legend()
+
+    # Gráfico de señales filtradas
+    axs[1, 0].plot(datos['t_combinada'], datos['a_combinada'], label='a combinada')
+    axs[1, 0].plot(datos['t_combinada'], datos['a_filtrada'], label='a filtrada')
+    axs[1, 0].set_title('Señales combinadas y filtradas')
+    axs[1, 0].set_xlabel('Tiempo [s]')
+    axs[1, 0].set_ylabel('Aceleración [m/s²]')
+    axs[1, 0].grid(True)
+    axs[1, 0].legend()
+
+    # Gráfico de instantes clave
+    axs[1, 1].plot(datos['t_combinada'], datos['a_filtrada'], label='a filtrada')
+    axs[1, 1].plot(datos['t1'], datos['a_filtrada'][datos['t1_index']], 'ro')  # t1
+    axs[1, 1].plot(datos['t2'], datos['a_filtrada'][datos['t2_index']], 'go')  # t2
+    axs[1, 1].plot(datos['t3'], datos['a_filtrada'][datos['t3_index']], 'bo')  # t3
+    axs[1, 1].set_title('Instantes clave')
+    axs[1, 1].set_xlabel('Tiempo [s]')
+    axs[1, 1].set_ylabel('Aceleración [m/s²]')
+    axs[1, 1].grid(True)
+    axs[1, 1].legend()
+
+    # Gráfico de velocidad
+    axs[2, 0].plot(datos['t_v_recortada'], datos['v_recortada'], label='Velocidad')
+    axs[2, 0].plot(datos['t_v_max'], datos['v_max'], 'ro')  # Velocidad máxima
+    axs[2, 0].plot(datos['t_v_min'], datos['v_min'], 'bo')  # Velocidad mínima
+    axs[2, 0].set_title('Velocidad en función del tiempo')
+    axs[2, 0].set_xlabel('Tiempo [s]')
+    axs[2, 0].set_ylabel('Velocidad [m/s]')
+    axs[2, 0].grid(True)
+    axs[2, 0].legend()
+
+    # Gráfico de potencia
+    axs[2, 1].plot(datos['t_recortado'], datos['P'], label='Potencia')
+    axs[2, 1].plot(datos['t_p_max'], datos['p_max'], 'ro')  # Potencia máxima
+    axs[2, 1].set_title('Potencia en función del tiempo')
+    axs[2, 1].set_xlabel('Tiempo [s]')
+    axs[2, 1].set_ylabel('Potencia [W]')
+    axs[2, 1].grid(True)
+    axs[2, 1].legend()
+
+    fig.subplots_adjust(hspace=0.4, wspace=0.3)
+
+    plt.show()
+
 
 def salir(app):
-    mostrar_pantalla_login(app)
+    global  server
+    respuesta = messagebox.askyesno(get_translation(textos, idioma_actual, "Confirmacion"), get_translation(textos, idioma_actual, "Continuar"))
+
+    if respuesta:
+        quit_session(server)
+        mostrar_pantalla_login(app)
+        server = None
 
 def ajustar_texto(texto, max_length):
     if len(texto) > max_length:
@@ -450,7 +560,7 @@ def on_button_release(event):
 
 def seleccionar_archivo(archivo_btn):
     global archivo_seleccionado  # Declarar la variable global
-    archivo = app.select_file(filetypes=[["CSV files", "*.csv"], ["Excel files", "*.xlsx"]])
+    archivo = app.select_file(filetypes=[["Excel files", "*.xls"], ["Excel files", "*.xlsx"]])
     if archivo:
         archivo_btn.text = f"Archivo: {ajustar_texto(archivo.split('/')[-1], 15)}"
         info("Archivo seleccionado", f"Has seleccionado: {archivo}")
@@ -480,36 +590,6 @@ def cambiar_idioma(idioma):
     idioma_actual = idioma
     mostrar_pantalla_principal(app)
 
-def recortar_datos(t, a, umbral, duracion_min):
-    # Encontrar el índice donde la aceleración supera el umbral
-    start_indices = np.where(a > umbral)[0]
-    if len(start_indices) == 0:
-        raise ValueError("No se encontraron datos que superen el umbral.")
-
-    start_index = start_indices[0]
-
-    # Encontrar el índice donde la duración es suficiente
-    end_index = start_index + int(duracion_min / (t[1] - t[0]))
-    if end_index >= len(t):
-        end_index = len(t) - 1
-
-    # Verificar que los índices son válidos
-    if start_index < 0 or end_index < 0 or start_index >= len(t) or end_index >= len(t):
-        raise IndexError("Los índices de recorte son inválidos.")
-
-    t_recortada = t[start_index:end_index] - t[start_index]
-    a_recortada = a[start_index:end_index]
-
-    return t_recortada, a_recortada, start_index, end_index
-
-def enviar_datos_login(app, userTxTBox, passTxTBox):
-    username = userTxTBox.value
-    password = passTxTBox.value
-    if login(iniciar_conexion(), username, password):
-        mostrar_pantalla_login(app)
-    else:
-        mostrar_pantalla_principal(app)
-
 def crear_imagen_texto(texto, width, height, radio, color_fondo, color_texto, ruta_fuente_titulos=None, tamano_fuente_titulos=16):
     imagen = Image.new("RGBA", (width, height), (255, 255, 255, 0))
     draw = ImageDraw.Draw(imagen)
@@ -530,6 +610,21 @@ def crear_imagen_texto(texto, width, height, radio, color_fondo, color_texto, ru
     draw.text((pos_x, pos_y), texto, font=fuente_titulos, fill=color_texto)
 
     return ImageTk.PhotoImage(imagen)
+
+def comprobar_campos_salto(main_content, masaTxTBox, nombreTxTBox, grupoTxTBox):
+    try:
+        masa = int(masaTxTBox.value.strip())
+        nombre = nombreTxTBox.value.strip()
+        grupo = grupoTxTBox.value.strip()
+
+        if not masa or not grupo or not nombre or not archivo_seleccionado:
+            messagebox.showerror("Error", get_translation(textos, idioma_actual, "Obligatorio"))
+        elif type(masa) != int:
+            messagebox.showerror("Error", get_translation(textos, idioma_actual, "Numerico"))
+        else:
+            mostrar_pantalla_resultados(main_content, masaTxTBox, nombreTxTBox, grupoTxTBox)
+    except:
+        messagebox.showerror("Error", get_translation(textos, idioma_actual, "Numerico"))
 
 def mostrar_pantalla_realizarSalto(main_content):
     clear_box(main_content)
@@ -611,71 +706,98 @@ def mostrar_pantalla_realizarSalto(main_content):
     top_box.tk.config(bg=color_fondo)
 
     imagen_boton = crear_imagen_texto(get_translation(textos, idioma_actual, "Enviar datos"), 150, 35, 0, "white", "black", fuente_subtitulos, 14)
-    enviarBTN = PushButton(contenido, text="Enviar datos", grid=[0, 9], image=imagen_boton, command=lambda: mostrar_pantalla_resultados(main_content))
+    enviarBTN = PushButton(contenido, text="Enviar datos", grid=[0, 9], image=imagen_boton, command=lambda: comprobar_campos_salto(main_content, masaTxTBox, nombreTxTBox, grupoTxTBox))
     estilizar_boton(enviarBTN, colores)
 
 
-def mostrar_pantalla_resultados(main_content):
+def guardar_datos(datos, main_content):
+    if send_data(server, datos):
+        messagebox.showinfo(get_translation(textos, idioma_actual, "Confimacion"), get_translation(textos, idioma_actual, "Resultados_Salto_Si"))
+    else:
+        messagebox.showinfo(get_translation(textos, idioma_actual, "Confimacion"), get_translation(textos, idioma_actual, "Resultados_Salto_No"))
+    mostrar_pantalla_realizarSalto(main_content)
+
+
+def mostrar_pantalla_resultados(main_content, masaRecipiente, nombreRecipiente, grupoRecipiente):
     clear_box(main_content)
 
-    # resultado = calcular_datos_salto(archivo_seleccionado)
-    # print(resultado)
+    nombre = nombreRecipiente.value
+    grupo = grupoRecipiente.value
+    masa = float(masaRecipiente.value)
+    resultado, datos_graficas = calcular_datos_salto(archivo_seleccionado, masa)
+    fecha_hoy = datetime.datetime.now()
+    fecha_formateada = fecha_hoy.strftime("%d-%m-%Y")
+
+    datos_finales = [nombre, grupo, str(int(resultado * 100)), fecha_formateada]
+
     canvas = tk.Canvas(main_content.tk, width=650, height=600, highlightthickness=0)  # Quitar el borde del canvas
     canvas.place(x=0, y=0, anchor="nw")
-    resultado = 34
     color_diapo = 0
     pikmin_key = ""
+    pikmin_name = ""
 
-    if resultado <= 18:
+    if resultado <= 0.18:
         load_image(canvas, fondos_resultados[6], [650, 600])
         color_diapo = 0
         pikmin_key = "pikmin_morado"
-    elif 18 < resultado <= 22.32:
+        pikmin_name = "pikmin_1"
+    elif 0.18 < resultado <= 0.2232:
         load_image(canvas, fondos_resultados[5], [650, 600])
         color_diapo = 1
         pikmin_key = "pikmin_pétreo"
-    elif 22.32 < resultado <= 24.29:
+        pikmin_name = "pikmin_2"
+    elif 0.2232 < resultado <= 0.2429:
         load_image(canvas, fondos_resultados[-1], [650, 600])
         color_diapo = 2
         pikmin_key = "pikmin_gélido"
-    elif 24.29 < resultado <= 27.29:
+        pikmin_name = "pikmin_3"
+    elif 0.2429 < resultado <= 0.2729:
         load_image(canvas, fondos_resultados[7], [650, 600])
         color_diapo = 3
         pikmin_key = "pikmin_blanco"
-    elif 27.29 < resultado <= 30.06:
+        pikmin_name = "pikmin_4"
+    elif 0.2729 < resultado <= 0.3006:
         load_image(canvas, fondos_resultados[3], [650, 600])
         color_diapo = 4
         pikmin_key = "pikmin_azul"
-    elif 30.06 < resultado <= 33.63:
+        pikmin_name = "pikmin_5"
+    elif 0.3006 < resultado <= 0.3363:
         load_image(canvas, fondos_resultados[0], [650, 600])
         color_diapo = 5
         pikmin_key = "pikmin_rojo"
-    elif 33.63 < resultado <= 36.98:
+        pikmin_name = "pikmin_6"
+    elif 0.3363 < resultado <= 0.3698:
         load_image(canvas, fondos_resultados[2], [650, 600])
         color_diapo = 6
         pikmin_key = "pikmin_amarillo"
-    elif 36.98 < resultado <= 43.49:
+        pikmin_name = "pikmin_7"
+    elif 0.3698 < resultado <= 0.4349:
         load_image(canvas, fondos_resultados[1], [650, 600])
         color_diapo = 7
         pikmin_key = "pikmin_luminoso"
-    elif resultado > 43.49:
+        pikmin_name = "pikmin_8"
+    elif resultado > 0.4349:
         load_image(canvas, fondos_resultados[4], [650, 600])
         color_diapo = 8
         pikmin_key = "pikmin_alado"
+        pikmin_name = "pikmin_9"
 
     contenido = Box(main_content, layout="grid", align="top", width="fill", height="fill")
     contenido.tk.place(relx=0.5, rely=0, anchor="n")
     contenido.tk.config(bg='', padx=0, pady=0)
 
-    top_box = Box(contenido, grid=[0, 0], width="fill", height=71)
-    top_box.tk.config(bg='#E73734')
-    top_box = Box(contenido, grid=[0, 1], width="fill", height=20)
     titulo_box = Box(contenido, grid=[0, 2], align="top", width="fill")
     if len(colores_resultados) == 5:
+        top_box = Box(contenido, grid=[0, 0], width="fill", height=71)
+        top_box.tk.config(bg=colores_fondos_resultados[color_diapo])
+        top_box = Box(contenido, grid=[0, 1], width="fill", height=20)
         top_box.tk.config(bg='white')
-        imagen_texto = crear_imagen_texto(get_translation(textos, idioma_actual, "Realizar salto"), 200, 40, 0, "white", color_texto, fuente_titulos, 30)
+        imagen_texto = crear_imagen_texto(get_translation(textos, idioma_actual, pikmin_name), 300, 40, 0, "white", color_texto, fuente_titulos, 30)
         titulo = tk.Label(titulo_box.tk, image=imagen_texto, bg='white')
     else:
+        top_box = Box(contenido, grid=[0, 0], width="fill", height=71)
+        top_box.tk.config(bg=colores_fondos_resultados[color_diapo])
+        top_box = Box(contenido, grid=[0, 1], width="fill", height=20)
         top_box.tk.config(bg=colores_resultados[color_diapo])
         imagen_texto = crear_imagen_texto(get_translation(textos, idioma_actual, "Realizar salto"), 200, 40, 0, colores_resultados[color_diapo], color_texto, fuente_titulos, 30)
         titulo = tk.Label(titulo_box.tk, image=imagen_texto, bg=colores_resultados[color_diapo])
@@ -685,19 +807,37 @@ def mostrar_pantalla_resultados(main_content):
     titulo.image = imagen_texto
 
     pikmin_texto = "\n".join(get_translation(textos, idioma_actual, pikmin_key))
+    pikmin_texto = insertar_salto_linea_en_punto(pikmin_texto)
 
     if len(colores_resultados) == 5:
-        text_widget = tk.Text(contenido.tk, wrap="word", bg="white", fg=color_texto, height=10, width=55, borderwidth=0, highlightthickness=0)
+        text_widget = tk.Text(contenido.tk, wrap="word", bg="white", fg=color_texto, height=12, width=55, borderwidth=0, highlightthickness=0)
+        canvas_boton_guardar = tk.Canvas(canvas, width=85, height=85, highlightthickness=0, bg="white")
+        canvas_boton_graficas = tk.Canvas(canvas, width=95, height=95, highlightthickness=0, bg="white")
     else:
         text_widget = tk.Text(contenido.tk, wrap="word", bg=colores_resultados[color_diapo], fg=color_texto, height=10, width=55, borderwidth=0, highlightthickness=0)
+        canvas_boton_guardar = tk.Canvas(canvas, width=85, height=85, highlightthickness=0, bg=colores_resultados[color_diapo])
+        canvas_boton_graficas = tk.Canvas(canvas, width=95, height=95, highlightthickness=0, bg=colores_resultados[color_diapo])
 
     text_widget.insert("1.0", pikmin_texto)
     text_widget.config(state="disabled")
-    text_widget.grid(row=3, column=0, sticky="nsew")
+    text_widget.grid(row=3, column=0, sticky="nsew", pady=(20, 0))
 
     contenido.tk.grid_rowconfigure(3, weight=1)
     contenido.tk.grid_columnconfigure(0, weight=1)
 
+    canvas_boton_guardar.place(x=230, y=400, anchor="nw")
+    load_image(canvas_boton_guardar, "../../imagenes/boton_guardar.png", [85, 85])
+
+    canvas_boton_graficas.place(x=330, y=395, anchor="nw")
+    load_image(canvas_boton_graficas, "../../imagenes/boton_graficas.png", [95, 95])
+
+    canvas_boton_guardar.bind("<Button-1>", lambda event: guardar_datos(datos_finales, main_content))
+    canvas_boton_guardar.bind("<Enter>", lambda event: canvas_boton_guardar.config(cursor="hand2"))
+    canvas_boton_guardar.bind("<Leave>", lambda event: canvas_boton_guardar.config(cursor=""))
+
+    canvas_boton_graficas.bind("<Button-1>", lambda event: representar_todos_los_datos(datos_graficas))
+    canvas_boton_graficas.bind("<Enter>", lambda event: canvas_boton_graficas.config(cursor="hand2"))
+    canvas_boton_graficas.bind("<Leave>", lambda event: canvas_boton_graficas.config(cursor=""))
 
 def mostrar_pantalla_inicio(main_content):
     clear_box(main_content)
@@ -840,14 +980,21 @@ def mostrar_pantalla_configuracion(main_content):
     idiomaTXT.grid(row=8, column=0, sticky="w")
     idiomaTXT.image = idioma_imagen
 
-    idioma_selector = ttk.Combobox(form_box.tk, values=["Español", "English"], style='TCombobox')
+    idioma_selector = ttk.Combobox(form_box.tk, values=["es", "en"], style='TCombobox')
     idioma_selector.grid(row=8, column=1, sticky="e")
     idioma_selector.set(idioma_actual)
     idioma_selector.bind("<<ComboboxSelected>>", lambda event: cambiar_idioma(idioma_selector.get()))
 
 
-def mostrar_pantalla_ranking(main_content, datos_ranking):
+def mostrar_pantalla_ranking(main_content):
+    global server
     clear_box(main_content)
+    datos_ranking = []
+
+    if server:
+        datos_ranking = get_leaderboard(server)
+    else:
+        print("No se pudo conectar al servidor para obtener el leaderboard.")
 
     canvas = tk.Canvas(main_content.tk, width=650, height=600, highlightthickness=0)  # Quitar el borde del canvas
     canvas.place(x=0, y=0, anchor="nw")
@@ -876,8 +1023,9 @@ def mostrar_pantalla_ranking(main_content, datos_ranking):
     encabezados.tk.config(bg=color_fondo)
 
     encabezados_imagenes = [
+        crear_imagen_texto(get_translation(textos, idioma_actual, "Ranking"), 100, 30, 0, color_fondo, color_texto, fuente_subtitulos, 17),
         crear_imagen_texto(get_translation(textos, idioma_actual, "Nombre"), 100, 30, 0, color_fondo, color_texto, fuente_subtitulos, 17),
-        crear_imagen_texto(get_translation(textos, idioma_actual, "Grupo"), 100, 30, 0, color_fondo, color_texto, fuente_subtitulos, 17),
+        crear_imagen_texto(get_translation(textos, idioma_actual, "Grupo Promu"), 120, 30, 0, color_fondo, color_texto, fuente_subtitulos, 17),
         crear_imagen_texto(get_translation(textos, idioma_actual, "Altura"), 100, 30, 0, color_fondo, color_texto, fuente_subtitulos, 17),
         crear_imagen_texto(get_translation(textos, idioma_actual, "Fecha"), 100, 30, 0, color_fondo, color_texto, fuente_subtitulos, 17)
     ]
@@ -898,9 +1046,10 @@ def mostrar_pantalla_ranking(main_content, datos_ranking):
 
             # Crear imágenes para los datos del ranking
             datos_imagenes = [
+                crear_imagen_texto(datos_ranking[i]['ranking'], 100, 20, 0, color_fondo, color_texto, fuente_texto),
                 crear_imagen_texto(datos_ranking[i]['nombre'], 100, 20, 0, color_fondo, color_texto, fuente_texto),
-                crear_imagen_texto(datos_ranking[i]['grupo'], 100, 20, 0, color_fondo, color_texto, fuente_texto),
-                crear_imagen_texto(datos_ranking[i]['altura'], 100, 20, 0, color_fondo, color_texto, fuente_texto),
+                crear_imagen_texto(datos_ranking[i]['grupo_ProMu'], 100, 20, 0, color_fondo, color_texto, fuente_texto),
+                crear_imagen_texto(str(datos_ranking[i]['altura']), 100, 20, 0, color_fondo, color_texto, fuente_texto),
                 crear_imagen_texto(datos_ranking[i]['fecha'], 100, 20, 0, color_fondo, color_texto, fuente_texto)
             ]
 
@@ -940,7 +1089,7 @@ def mostrar_pantalla_principal(app):
     realizarsaltoPB = PushButton(sidebar, image=imagen_boton, text="Realizar salto", align="top", height=60, command=lambda: mostrar_pantalla_realizarSalto(main_content))
     realizarsaltoPB.tk.config(bg=color_sidebar)
     imagen_boton = crear_imagen_texto(get_translation(textos, idioma_actual, "Ranking"), 150, 100, 0, color_sidebar, color_texto, fuente_subtitulos, 14)
-    rankingPB = PushButton(sidebar, text="Ranking", image=imagen_boton, align="top", height=60, command=lambda: mostrar_pantalla_ranking(main_content, datos_ranking))
+    rankingPB = PushButton(sidebar, text="Ranking", image=imagen_boton, align="top", height=60, command=lambda: mostrar_pantalla_ranking(main_content))
     rankingPB.tk.config(bg=color_sidebar)
     imagen_boton = crear_imagen_texto(get_translation(textos, idioma_actual, "Configuración"), 150, 100, 0, color_sidebar, color_texto, fuente_subtitulos, 14)
     configPB = PushButton(sidebar, text="Config", image=imagen_boton, align="top", height=60, command=lambda: mostrar_pantalla_configuracion(main_content))
@@ -961,6 +1110,23 @@ def mostrar_pantalla_principal(app):
 
     app.tk.update_idletasks()
 
+def enviar_datos_login(app, userTxTBox, passTxTBox):
+    global server
+    username = userTxTBox.value.strip()
+    password = passTxTBox.value.strip()
+
+    if not username or not password:
+        messagebox.showerror("Error", get_translation(textos, idioma_actual, "Obligatorio"))
+    else:
+        if not server:
+            server = iniciar_conexion()
+        if server and login(server, username, password):
+            mostrar_pantalla_principal(app)
+        else:
+            messagebox.showerror("Error", get_translation(textos, idioma_actual, "LoginIncorrecto"))
+            if server:
+                server.close()
+                server = None
 
 def mostrar_pantalla_login(app):
     clear_box(app)
@@ -1004,7 +1170,10 @@ def mostrar_pantalla_login(app):
 if __name__ == "__main__":
     app = App(title="PikLeap", width=800, height=600, bg="#fff5a4")
     app.tk.resizable(False, False)
-    mostrar_pantalla_login(app)
-    #reproducir_musica()
+    #mostrar_pantalla_login(app)
+    #mostrar_pantalla_ranking()
+    #mostrar_pantalla_configuracion(app)
+    #mostrar_pantalla_resultados(app)
+    mostrar_pantalla_principal(app)
     center_window(app, 800, 600)
     app.display()
