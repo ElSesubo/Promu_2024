@@ -1,5 +1,5 @@
 from io import BytesIO
-from unittest.mock import patch, MagicMock, call, ANY
+from unittest.mock import patch, MagicMock, call, ANY, Mock
 
 import mpt as mpt
 import pytest
@@ -957,45 +957,8 @@ def test_crear_imagen_texto():
         # Verifica que el resultado es el esperado
         assert resultado == mock_photoimage.return_value
 
-@pytest.fixture
-def setup_fields():
-    main_content = MagicMock()
-    masaTxTBox = MagicMock()
-    nombreTxTBox = MagicMock()
-    grupoTxTBox = MagicMock()
-    return main_content, masaTxTBox, nombreTxTBox, grupoTxTBox
-
-# Pruebas para la función comrpobar_campos_salto ---------------------- CHECK
-def test_comprobar_campos_salto_todos_vacios(setup_fields):
-    main_content, masaTxTBox, nombreTxTBox, grupoTxTBox = setup_fields
-    masaTxTBox.value = ""
-    nombreTxTBox.value = ""
-    grupoTxTBox.value = ""
-
-    with patch('pantallas.inicio.funciones.messagebox.showerror') as mock_showerror, \
-         patch('pantallas.inicio.funciones.archivo_seleccionado', None), \
-         patch('pantallas.inicio.funciones.get_translation', return_value="Obligatorio"):
-
-        comprobar_campos_salto(main_content, masaTxTBox, nombreTxTBox, grupoTxTBox)
-
-        mock_showerror.assert_called_once_with("Error", "Obligatorio")
-
-def test_comprobar_campos_salto_masa_invalida(setup_fields):
-    main_content, masaTxTBox, nombreTxTBox, grupoTxTBox = setup_fields
-    masaTxTBox.value = "abc"
-    nombreTxTBox.value = "Nombre"
-    grupoTxTBox.value = "Grupo"
-
-    with patch('pantallas.inicio.funciones.messagebox.showerror') as mock_showerror, \
-         patch('pantallas.inicio.funciones.archivo_seleccionado', "/ruta/al/archivo/seleccionado.xlsx"), \
-         patch('pantallas.inicio.funciones.get_translation', return_value="Numerico") as mock_get_translation:
-
-        comprobar_campos_salto(main_content, masaTxTBox, nombreTxTBox, grupoTxTBox)
-
-        mock_showerror.assert_called_once_with("Error", "Numerico")
-
-# Pruebas para la función guardar_datos_envio ---------------------- CHECK
-def test_guardar_datos_envio():
+# Pruebas para la función guardar_datos ---------------------- CHECK
+def test_guardar_datos():
     datos = {'key': 'value'}
     main_content = MagicMock()
 
@@ -1014,6 +977,45 @@ def test_guardar_datos_envio():
         mock_send_data.assert_called_once_with('mock_server', datos)
         mock_showinfo.assert_called_once_with("Confimacion_es", "Resultados_Salto_Si_es")
         mock_mostrar_pantalla_realizarSalto.assert_called_once_with(main_content)
+
+# Pruebas para la función guardar_datos_locales ---------------------- CHECK
+def test_guardar_datos_locales():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        file_path = os.path.join(temp_dir, "top_prueba.txt")
+
+        # Crear el archivo con cabeceras previamente
+        with open(file_path, 'w') as archivo:
+            archivo.write("nombre,grupo_ProMu,altura,fecha\n")
+
+        # Llamada a la función
+        resultado = guardar_datos_locales(["pepe", "asd", "30", "02072025"], file_path)
+
+        # Verificar el contenido del archivo
+        with open(file_path, 'r') as archivo:
+            lineas = archivo.readlines()
+            assert lineas[0].strip() == "nombre,grupo_ProMu,altura,fecha"
+            assert lineas[1].strip() == "pepe,asd,30,02072025"
+
+# Pruebas para la función cargar_datos_locales ---------------------- CHECK
+def test_cargar_datos_locales():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        file_path = os.path.join(temp_dir, "top_prueba.txt")
+
+        with open(file_path, 'w') as archivo:
+            archivo.write("nombre,grupo_ProMu,altura,fecha\n")
+            archivo.write("asd,3asd,29,01062024\n")
+            archivo.write("pepe,asd,30,02072025\n")
+            archivo.write("maria,grupo1,28,03082026\n")
+
+        datos_ordenados = cargar_datos_locales(file_path)
+
+        assert len(datos_ordenados) == 3
+        assert datos_ordenados[0]["nombre"] == "pepe"
+        assert datos_ordenados[0]["altura"] == 30
+        assert datos_ordenados[1]["nombre"] == "asd"
+        assert datos_ordenados[1]["altura"] == 29
+        assert datos_ordenados[2]["nombre"] == "maria"
+        assert datos_ordenados[2]["altura"] == 28
 
 @pytest.fixture
 def setup_fields():

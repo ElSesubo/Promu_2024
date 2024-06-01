@@ -1,5 +1,6 @@
 import datetime
 import json
+import tempfile
 from tkinter import ttk, messagebox
 from PIL import ImageDraw, ImageFont
 from guizero import App, Box, Text, PushButton, TextBox, info
@@ -24,6 +25,7 @@ fuente_titulos = "../../fuentes/Nunito-ExtraBold.ttf"
 fuente_texto = "../../fuentes/Nunito-Medium.ttf"
 archivo_seleccionado = None
 server = None
+modo = "Online"
 
 temas = {
      "Claro": {
@@ -111,14 +113,16 @@ textos = {
         "Altura": "Height",
         "Fecha": "Date",
         "Inicio": "Home",
-        "Realizar salto": "Perform Jump",
         "Configuración": "Settings",
         "Iniciar sesión": "Login",
+        "Iniciar sesión offline": "Offline login",
         "Usuario: ": "Username:",
         "Contraseña: ": "Password:",
         "Confirmacion": "Confirmation",
         "Resultados_Salto_Si": "Your results make it to the ranking",
         "Resultados_Salto_No": "Your results didn't make it to the ranking",
+        "Resultados_Guardados": "Your results are well saved",
+        "Resultados_Guardados_No": "There was a problem saving your results",
         "Obligatorio": "Fields must be filled",
         "Numerico": "You must introduce a number",
         "LoginIncorrecto": "Incorrect user or password",
@@ -172,14 +176,16 @@ textos = {
         "Altura": "Altura",
         "Fecha": "Fecha",
         "Inicio": "Inicio",
-        "Realizar salto": "Realizar salto",
         "Configuración": "Configuración",
         "Iniciar sesión": "Iniciar sesión",
+        "Iniciar sesión offline": "Iniciar sesión offline",
         "Usuario: ": "Usuario:",
         "Contraseña: ": "Contraseña:",
         "Confirmacion": "Confirmación",
         "Resultados_Salto_Si": "Tus resultados han entrado en la tabla de clasificación",
         "Resultados_Salto_No": "Tus resultados no han entrado en la tabla de clasificación",
+        "Resultados_Guardados": "Tus resultados han sido guardados correctamente",
+        "Resultados_Guardados_No": "Ha habido un problema al guardar tus datos",
         "Obligatorio": "Todos los campos son obligatorios.",
         "Numerico": "El campo tiene que ser numérico.",
         "LoginIncorrecto": "Usuario o contraseña incorrectos.",
@@ -434,8 +440,6 @@ def calcular_datos_salto(fichero, masa):
     ind_p_max = np.argmax(P)
     t_p_max = t_recortado[ind_p_max]
     H_a, H_b = calcular_altura_salto(v_max, g_medida, t_vuelo)
-    print(f'Altura del salto a partir de la velocidad de despegue: {H_a:.2f} m')
-    print(f'Altura del salto a partir del tiempo de vuelo: {H_b:.2f} m')
 
     datos = {
         't': t, 'ax': ax, 'ay': ay, 'az': az, 'a': a, 'a_fixed': a_fixed,
@@ -623,8 +627,50 @@ def comprobar_campos_salto(main_content, masaTxTBox, nombreTxTBox, grupoTxTBox):
             messagebox.showerror("Error", get_translation(textos, idioma_actual, "Numerico"))
         else:
             mostrar_pantalla_resultados(main_content, masaTxTBox, nombreTxTBox, grupoTxTBox)
-    except:
-        messagebox.showerror("Error", get_translation(textos, idioma_actual, "Numerico"))
+    except Exception as e:
+        print(e)
+
+def guardar_datos(datos, main_content):
+    if modo == "Online":
+        if send_data(server, datos):
+            messagebox.showinfo(get_translation(textos, idioma_actual, "Confimacion"), get_translation(textos, idioma_actual, "Resultados_Salto_Si"))
+        else:
+            messagebox.showinfo(get_translation(textos, idioma_actual, "Confimacion"), get_translation(textos, idioma_actual, "Resultados_Salto_No"))
+        mostrar_pantalla_realizarSalto(main_content)
+    else:
+        if guardar_datos_locales(datos):
+            messagebox.showinfo(get_translation(textos, idioma_actual, "Confimacion"), get_translation(textos, idioma_actual, "Resultados_Guardados"))
+        else:
+            messagebox.showerror("Error", get_translation(textos, idioma_actual, "Resultados_Guardados_No"))
+        mostrar_pantalla_realizarSalto(main_content)
+
+def guardar_datos_locales(datos_ranking, ruta="../../datos_locales_guardado/top_saltos.txt"):
+
+    file_exists = os.path.exists(ruta) and os.path.getsize(ruta) > 0
+
+    with open(ruta, 'a') as archivo:
+        if not file_exists:
+            cabeceras = ["nombre", "grupo_ProMu", "altura", "fecha"]
+            archivo.write(",".join(cabeceras) + "\n")
+            return False
+
+        archivo.write(",".join(datos_ranking) + "\n")
+        return True
+def cargar_datos_locales(ruta="../../datos_locales_guardado/top_saltos.txt"):
+    datos = []
+
+    with open(ruta, 'r') as archivo:
+        cabeceras = archivo.readline().strip().split(",")
+
+        for linea in archivo:
+            campos = linea.strip().split(",")
+            dato_dict = {cabeceras[i]: campos[i] for i in range(len(cabeceras))}
+            dato_dict["altura"] = int(dato_dict["altura"])
+            datos.append(dato_dict)
+
+    datos_ordenados = sorted(datos, key=lambda x: x["altura"], reverse=True)
+
+    return datos_ordenados
 
 def mostrar_pantalla_realizarSalto(main_content):
     clear_box(main_content)
@@ -708,15 +754,6 @@ def mostrar_pantalla_realizarSalto(main_content):
     imagen_boton = crear_imagen_texto(get_translation(textos, idioma_actual, "Enviar datos"), 150, 35, 0, "white", "black", fuente_subtitulos, 14)
     enviarBTN = PushButton(contenido, text="Enviar datos", grid=[0, 9], image=imagen_boton, command=lambda: comprobar_campos_salto(main_content, masaTxTBox, nombreTxTBox, grupoTxTBox))
     estilizar_boton(enviarBTN, colores)
-
-
-def guardar_datos(datos, main_content):
-    if send_data(server, datos):
-        messagebox.showinfo(get_translation(textos, idioma_actual, "Confimacion"), get_translation(textos, idioma_actual, "Resultados_Salto_Si"))
-    else:
-        messagebox.showinfo(get_translation(textos, idioma_actual, "Confimacion"), get_translation(textos, idioma_actual, "Resultados_Salto_No"))
-    mostrar_pantalla_realizarSalto(main_content)
-
 
 def mostrar_pantalla_resultados(main_content, masaRecipiente, nombreRecipiente, grupoRecipiente):
     clear_box(main_content)
@@ -985,16 +1022,19 @@ def mostrar_pantalla_configuracion(main_content):
     idioma_selector.set(idioma_actual)
     idioma_selector.bind("<<ComboboxSelected>>", lambda event: cambiar_idioma(idioma_selector.get()))
 
-
 def mostrar_pantalla_ranking(main_content):
     global server
+    global modo
     clear_box(main_content)
     datos_ranking = []
 
-    if server:
-        datos_ranking = get_leaderboard(server)
+    if modo == "Online":
+        if server:
+            datos_ranking = get_leaderboard(server)
+        else:
+            print("No se pudo conectar al servidor para obtener el leaderboard.")
     else:
-        print("No se pudo conectar al servidor para obtener el leaderboard.")
+        datos_ranking = cargar_datos_locales()
 
     canvas = tk.Canvas(main_content.tk, width=650, height=600, highlightthickness=0)  # Quitar el borde del canvas
     canvas.place(x=0, y=0, anchor="nw")
@@ -1046,7 +1086,7 @@ def mostrar_pantalla_ranking(main_content):
 
             # Crear imágenes para los datos del ranking
             datos_imagenes = [
-                crear_imagen_texto(datos_ranking[i]['ranking'], 100, 20, 0, color_fondo, color_texto, fuente_texto),
+                crear_imagen_texto(str(i+1), 100, 20, 0, color_fondo, color_texto, fuente_texto),
                 crear_imagen_texto(datos_ranking[i]['nombre'], 100, 20, 0, color_fondo, color_texto, fuente_texto),
                 crear_imagen_texto(datos_ranking[i]['grupo_ProMu'], 100, 20, 0, color_fondo, color_texto, fuente_texto),
                 crear_imagen_texto(str(datos_ranking[i]['altura']), 100, 20, 0, color_fondo, color_texto, fuente_texto),
@@ -1140,7 +1180,7 @@ def mostrar_pantalla_login(app):
     form_box.tk.place(relx=0.5, rely=0.5, anchor="center")
     form_box.tk.config(bg='')
 
-    separador = Box(form_box, grid=[0, 0, 1, 1], height=80)
+    separador = Box(form_box, grid=[0, 0, 1, 1], height=120)
     separador.tk.config(bg='')
 
     imagen_usuarioTXT = crear_imagen_texto(get_translation(textos, idioma_actual, "Usuario: "), 90, 35, 0, color_fondo, color_texto, fuente_subtitulos)
@@ -1167,13 +1207,22 @@ def mostrar_pantalla_login(app):
     sendPB = PushButton(button_container, image=imagen_boton, align="top", command=lambda: enviar_datos_login(app, userTxTBox, passTxTBox))
     estilizar_boton(sendPB, colores_botones_inter)
 
+    separador = Box(form_box, grid=[0, 5, 2, 1], height=20)
+    separador.tk.config(bg='')
+
+    button_container = Box(form_box, grid=[0, 6, 2, 1], align="top", width="fill")
+    imagen_boton = crear_imagen_texto(get_translation(textos, idioma_actual, "Iniciar sesión offline"), 200, 50, 0, "white", "black", fuente_titulos)
+    sendPB = PushButton(button_container, image=imagen_boton, align="top", command=lambda: iniciar_offline(app))
+    estilizar_boton(sendPB, colores_botones_inter)
+
+def iniciar_offline(app):
+    global modo
+    modo = "Offline"
+    mostrar_pantalla_principal(app)
+
 if __name__ == "__main__":
     app = App(title="PikLeap", width=800, height=600, bg="#fff5a4")
     app.tk.resizable(False, False)
-    #mostrar_pantalla_login(app)
-    #mostrar_pantalla_ranking()
-    #mostrar_pantalla_configuracion(app)
-    #mostrar_pantalla_resultados(app)
-    mostrar_pantalla_principal(app)
+    mostrar_pantalla_login(app)
     center_window(app, 800, 600)
     app.display()
