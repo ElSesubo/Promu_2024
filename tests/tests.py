@@ -1,60 +1,89 @@
+import tempfile
 from io import BytesIO
-from unittest.mock import patch, MagicMock, call, ANY, Mock
-
-import mpt as mpt
+from unittest.mock import patch, MagicMock, call, ANY, Mock, mock_open
 import pytest
-import numpy as np
-import matplotlib.testing.decorators as mpt
-from pantallas.inicio.funciones import *
+from main import *
 
-# Prueba para la función aplicar_tema ---------------------- CHECK
+# Prueba para la función aplicar_tema ---------------------- CHECK (No puede acceder a las variables globales)
 def test_aplicar_tema():
-    tema_prueba = {
-        "color_fondo": "#BDEAFA",
-        "color_texto": "black",
-        "color_titulos": "#31c816",
-        "color_sidebar": "#fcef89",
-        "colores_botones_sidebar": ["#fcef89", "#000000", "#fff5a4"],
-        "colores_resultados": "white",
-        "colores_fondos_resultados": ["#954C8D", "#646666", "#98F4F8", "#E9EBE7", "#3D88F5", "#E73734", "#F4D71C", "#80DF37", "#F681AF"],
-        "fondo_login": "../../imagenes/fondo_login.png",
-        "fondo_inicio": "../../imagenes/fondo_inicio.png",
-        "fondo_ranking": "../../imagenes/fondo_ranking.png",
-        "fondo_realizar_salto": "../../imagenes/fondo_realizar_salto.png",
-        "fondo_configuracion": "../../imagenes/fondo_configuracion.png",
-        "fondos_resultados": ["../../imagenes/fondos_resultados/4.png","../../imagenes/fondos_resultados/5.png","../../imagenes/fondos_resultados/6.png",
-                              "../../imagenes/fondos_resultados/7.png","../../imagenes/fondos_resultados/8.png","../../imagenes/fondos_resultados/9.png",
-                              "../../imagenes/fondos_resultados/10.png","../../imagenes/fondos_resultados/11.png","../../imagenes/fondos_resultados/12.png"]
-    }
+    global color_fondo
+    color_fondo = ""
 
-    # Inicializa las variables globales
-    global color_fondo, color_texto, color_sidebar, color_titulos, colores_botones_sidebar, fondo_login, fondo_inicio, fondo_ranking, fondo_realizar_salto, fondo_configuracion, fondos_resultados, colores_resultados, colores_fondos_resultados
+    with open('../config_data/temas.json', 'r') as archivo_temas:
+        temas = json.load(archivo_temas)
 
-    aplicar_tema(tema_prueba)
+    # Llamar a la función aplicar_tema
+    aplicar_tema(temas["Oscuro"])
 
-    assert color_fondo == "#BDEAFA"
-    assert color_texto == "black"
-    assert color_titulos == "#31c816"
-    assert color_sidebar == "#fcef89"
-    assert colores_botones_sidebar == ["#fcef89", "#000000", "#fff5a4"]
-    assert colores_resultados == "white"
-    assert colores_fondos_resultados == ["#954C8D", "#646666", "#98F4F8", "#E9EBE7", "#3D88F5", "#E73734", "#F4D71C", "#80DF37", "#F681AF"]
-    assert fondo_login == "../../imagenes/fondo_login.png"
-    assert fondo_inicio == "../../imagenes/fondo_inicio.png"
-    assert fondo_ranking == "../../imagenes/fondo_ranking.png"
-    assert fondo_realizar_salto == "../../imagenes/fondo_realizar_salto.png"
-    assert fondo_configuracion == "../../imagenes/fondo_configuracion.png"
-    assert fondos_resultados == [
-        "../../imagenes/fondos_resultados/4.png",
-        "../../imagenes/fondos_resultados/5.png",
-        "../../imagenes/fondos_resultados/6.png",
-        "../../imagenes/fondos_resultados/7.png",
-        "../../imagenes/fondos_resultados/8.png",
-        "../../imagenes/fondos_resultados/9.png",
-        "../../imagenes/fondos_resultados/10.png",
-        "../../imagenes/fondos_resultados/11.png",
-        "../../imagenes/fondos_resultados/12.png"
-    ]
+    # Verificar que todas las variables globales se establecieron correctamente
+    assert color_fondo == temas["Oscuro"]["color_fondo"]
+
+# Prueba para la funcion center_window ---------------------- CHECK
+def test_center_window():
+    # Crear un mock para app.tk
+    mock_tk = MagicMock()
+    mock_tk.winfo_screenwidth.return_value = 1920
+    mock_tk.winfo_screenheight.return_value = 1080
+
+    # Crear un mock para app
+    mock_app = MagicMock()
+    mock_app.tk = mock_tk
+
+    # Parámetros de ejemplo
+    width = 800
+    height = 600
+
+    # Llamar a la función a probar
+    center_window(mock_app, width, height)
+
+    # Calcular los valores esperados
+    expected_x = (1920 // 2) - (width // 2)
+    expected_y = (1080 // 2) - (height // 2)
+    expected_geometry = f'{width}x{height}+{expected_x}+{expected_y}'
+
+    # Verificar que winfo_screenwidth y winfo_screenheight se llamaron correctamente
+    mock_tk.winfo_screenwidth.assert_called_once()
+    mock_tk.winfo_screenheight.assert_called_once()
+
+    # Verificar que geometry se llamó correctamente
+    mock_tk.geometry.assert_called_once_with(expected_geometry)
+
+# Prueba para la funcion load_image ---------------------- CHECK
+@patch('main.ImageTk.PhotoImage')
+@patch('main.Image.open')
+def test_load_image(mock_open, mock_photo_image):
+    # Configurar los mocks
+    mock_image_instance = MagicMock()
+    mock_open.return_value = mock_image_instance
+    mock_resized_image = MagicMock()
+    mock_image_instance.resize.return_value = mock_resized_image
+    mock_photo_image_instance = MagicMock()
+    mock_photo_image.return_value = mock_photo_image_instance
+
+    # Mock del canvas
+    mock_canvas = MagicMock()
+
+    # Parámetros de ejemplo
+    path = "dummy_path.png"
+    dimensiones = (100, 100)
+
+    # Llamar a la función a probar
+    load_image(mock_canvas, path, dimensiones)
+
+    # Verificar que Image.open se llamó correctamente
+    mock_open.assert_called_once_with(path)
+
+    # Verificar que resize se llamó correctamente
+    mock_image_instance.resize.assert_called_once_with((dimensiones[0], dimensiones[1]), Image.LANCZOS)
+
+    # Verificar que PhotoImage se creó correctamente
+    mock_photo_image.assert_called_once_with(mock_resized_image)
+
+    # Verificar que create_image se llamó correctamente en el canvas
+    mock_canvas.create_image.assert_called_once_with(0, 0, anchor=tk.NW, image=mock_photo_image_instance)
+
+    # Verificar que la imagen se asignó correctamente al atributo del canvas
+    assert mock_canvas.image == mock_photo_image_instance
 
 # Prueba para la función insertar_salto_linea_en_punto ---------------------- CHECK
 def test_insertar_salto_linea_en_punto():
@@ -491,15 +520,15 @@ def test_representar_potencia():
 
 
 # Prueba para la función calcular_datos_salto ---------------------- CHECK
-@patch('pantallas.inicio.funciones.importar_datos')
-@patch('pantallas.inicio.funciones.corregir_aceleracion')
-@patch('pantallas.inicio.funciones.recortar_combinar_datos')
-@patch('pantallas.inicio.funciones.aplicar_filtro_savgol')
-@patch('pantallas.inicio.funciones.obtener_instantes_clave')
-@patch('pantallas.inicio.funciones.calcular_fuerza_salto')
-@patch('pantallas.inicio.funciones.calcular_velocidad_salto')
-@patch('pantallas.inicio.funciones.calcular_potencia_salto')
-@patch('pantallas.inicio.funciones.calcular_altura_salto')
+@patch('main.importar_datos')
+@patch('main.corregir_aceleracion')
+@patch('main.recortar_combinar_datos')
+@patch('main.aplicar_filtro_savgol')
+@patch('main.obtener_instantes_clave')
+@patch('main.calcular_fuerza_salto')
+@patch('main.calcular_velocidad_salto')
+@patch('main.calcular_potencia_salto')
+@patch('main.calcular_altura_salto')
 def test_calcular_datos_salto(mock_calcular_altura_salto, mock_calcular_potencia_salto, mock_calcular_velocidad_salto, 
                               mock_calcular_fuerza_salto, mock_obtener_instantes_clave, mock_aplicar_filtro_savgol, 
                               mock_recortar_combinar_datos, mock_corregir_aceleracion, mock_importar_datos):
@@ -656,11 +685,11 @@ def test_salir():
     app_mock = MagicMock()
 
     # Parchea las funciones y la variable global
-    with patch('pantallas.inicio.funciones.messagebox.askyesno') as mock_askyesno, \
-         patch('pantallas.inicio.funciones.quit_session') as mock_quit_session, \
-         patch('pantallas.inicio.funciones.mostrar_pantalla_login') as mock_mostrar_pantalla_login, \
-         patch('pantallas.inicio.funciones.get_translation', side_effect=lambda texts, lang, key: key), \
-         patch('pantallas.inicio.funciones.server', new_callable=MagicMock) as mock_server:
+    with patch('main.messagebox.askyesno') as mock_askyesno, \
+         patch('main.quit_session') as mock_quit_session, \
+         patch('main.mostrar_pantalla_login') as mock_mostrar_pantalla_login, \
+         patch('main.get_translation', side_effect=lambda texts, lang, key: key), \
+         patch('main.server', new_callable=MagicMock) as mock_server:
 
         # Simula que el usuario responde "Sí" al mensaje de confirmación
         mock_askyesno.return_value = True
@@ -669,7 +698,7 @@ def test_salir():
         salir(app_mock)
 
         # Verifica que messagebox.askyesno fue llamado correctamente
-        mock_askyesno.assert_called_once_with("Confirmacion", "Continuar")
+        mock_askyesno.assert_called_once_with("confirmacion", "continuar")
         # Verifica que quit_session fue llamado con el servidor correcto
         mock_quit_session.assert_called_once_with(mock_server)
         # Verifica que mostrar_pantalla_login fue llamado con la aplicación correcta
@@ -691,10 +720,10 @@ def test_estilizar_boton():
     boton_mock.tk = MagicMock()
     colores = ["#ffffff", "#000000", "#cccccc"]
 
-    with patch('pantallas.inicio.funciones.on_hover') as mock_on_hover, \
-         patch('pantallas.inicio.funciones.on_leave') as mock_on_leave, \
-         patch('pantallas.inicio.funciones.ignore_event') as mock_ignore_event, \
-         patch('pantallas.inicio.funciones.on_button_release') as mock_on_button_release:
+    with patch('main.on_hover') as mock_on_hover, \
+         patch('main.on_leave') as mock_on_leave, \
+         patch('main.ignore_event') as mock_ignore_event, \
+         patch('main.on_button_release') as mock_on_button_release:
 
         # Llama a la función estilizar_boton
         estilizar_boton(boton_mock, colores)
@@ -780,9 +809,9 @@ def test_seleccionar_archivo(archivo_btn_mock):
     mock_app.select_file.return_value = archivo
 
     # Parchea las funciones y la variable global
-    with patch.dict('pantallas.inicio.funciones.__dict__', {'app': mock_app, 'archivo_seleccionado': None}), \
-         patch('pantallas.inicio.funciones.ajustar_texto', side_effect=lambda text, length: text[:length-3] + '...' if len(text) > length else text) as mock_ajustar_texto, \
-         patch('pantallas.inicio.funciones.info') as mock_info:
+    with patch.dict('main.__dict__', {'app': mock_app, 'archivo_seleccionado': None}), \
+         patch('main.ajustar_texto', side_effect=lambda text, length: text[:length-3] + '...' if len(text) > length else text) as mock_ajustar_texto, \
+         patch('main.info') as mock_info:
 
         # Llama a la función seleccionar_archivo
         resultado = seleccionar_archivo(archivo_btn_mock)
@@ -800,42 +829,128 @@ def test_seleccionar_archivo(archivo_btn_mock):
         mock_info.assert_called_once_with("Archivo seleccionado", f"Has seleccionado: {archivo}")
 
         # Verifica que la variable global archivo_seleccionado se actualizó correctamente
-        from pantallas.inicio.funciones import archivo_seleccionado
+        from main import archivo_seleccionado
         assert archivo_seleccionado == archivo
 
         # Verifica que el resultado de la función es el archivo seleccionado
         assert resultado == archivo
 
 # Prueba para la función cambiar_tema ---------------------- CHECK
-def test_cambiar_tema():
-    # Define el nuevo tema
-    nuevo_tema = "oscuro"
+@patch('main.guardar_ajustes')
+@patch('main.mostrar_pantalla_principal')
+@patch('main.aplicar_tema')
+@patch('main.get_translation')
+def test_cambiar_tema_oscuro(mock_get_translation, mock_aplicar_tema, mock_mostrar_pantalla, mock_guardar_ajustes):
+    # Configurar los mocks
+    mock_get_translation.side_effect = lambda textos, idioma, key: "Oscuro" if key == "oscuro" else key
+    global tema_actual, textos, idioma_actual, temas, app
+    tema_actual = "Oscuro"
+    textos = {"es": {"oscuro": "Oscuro"}}
+    idioma_actual = "es"
+    temas = {"Oscuro": {"color_fondo": "#000000"}, "Claro": {"color_fondo": "#FFFFFF"}}
+    app = MagicMock()
 
-    # Crea un mock para los temas
+    with patch.dict('main.__dict__', {'temas': temas, 'app': app, 'tema_actual': tema_actual, 'textos': textos, 'idioma_actual': idioma_actual}):
+        # Llamar a la función a probar
+        cambiar_tema("Oscuro")
+
+        # Verificar que tema_actual se actualizó correctamente
+        assert tema_actual == "Oscuro"
+        # Verificar que las funciones se llamaron correctamente
+        mock_aplicar_tema.assert_called_once_with(temas["Oscuro"])
+        mock_mostrar_pantalla.assert_called_once_with(app)
+        mock_guardar_ajustes.assert_called_once_with("Tema", "Oscuro")
+
+
+# Pruebas para la función guardar_ajustes ---------------------- CHECK
+@pytest.fixture
+def mock_open_file():
+    with patch('builtins.open', mock_open()) as mock_file:
+        yield mock_file
+
+@pytest.fixture
+def mock_os_path_exists():
+    with patch('os.path.exists') as mock:
+        yield mock
+
+def test_guardar_ajustes_tema(mock_open_file, mock_os_path_exists):
+    # Configurando el mock para que os.path.exists devuelva False
+    mock_os_path_exists.return_value = False
+
+    # Llamando a la función a testear
+    guardar_ajustes("Tema", "Oscuro")
+
+    # Verificando que se escribió correctamente en el archivo
+    mock_open_file.assert_called_once_with("ajustes_guardados.txt", 'w')
+    handle = mock_open_file()
+    handle.writelines.assert_called_once_with(["Tema:Oscuro\n", "Idioma:"])
+
+def test_guardar_ajustes_idioma(mock_open_file, mock_os_path_exists):
+    # Configurando el mock para que os.path.exists devuelva False
+    mock_os_path_exists.return_value = False
+
+    # Llamando a la función a testear
+    guardar_ajustes("Idioma", "Español")
+
+    # Verificando que se escribió correctamente en el archivo
+    mock_open_file.assert_called_once_with("ajustes_guardados.txt", 'w')
+    handle = mock_open_file()
+    handle.writelines.assert_called_once_with(["Tema:\n", "Idioma:Español"])
+
+
+# Pruebas para la función cargar_ajustes ---------------------- CHECK
+mock_file_content = """
+Tema:Claro
+Idioma:es
+"""
+
+def test_cargar_ajustes():
     temas = {
-        "oscuro": "tema_oscuro"
+         "Claro": {
+            "color_fondo": "#BDEAFA",
+            "color_texto": "black",
+            "color_titulos": "#31c816",
+            "color_sidebar": "#fcef89",
+            "musica_login": "audio/023 - The Forest of Hope.mp3",
+            "musica_principal": "audio/009 - Impact Site.mp3",
+            "colores_botones_sidebar": ["#fcef89", "#000000", "#fff5a4"],
+            "colores_resultados": "white",
+            "colores_fondos_resultados": ["#954C8D", "#646666", "#98F4F8", "#E9EBE7", "#3D88F5", "#E73734", "#F4D71C", "#80DF37", "#F681AF"],
+            "fondo_login": "../imagenes/fondo_login.png",
+            "fondo_inicio": "../imagenes/fondo_inicio.png",
+            "fondo_ranking": "../imagenes/fondo_ranking.png",
+            "fondo_realizar_salto": "../imagenes/fondo_realizar_salto.png",
+            "fondo_configuracion": "../imagenes/fondo_configuracion.png",
+            "fondos_resultados": ["../imagenes/fondos_resultados/4.png","../imagenes/fondos_resultados/5.png","../imagenes/fondos_resultados/6.png",
+                                  "../imagenes/fondos_resultados/7.png","../imagenes/fondos_resultados/8.png","../imagenes/fondos_resultados/9.png",
+                                  "../imagenes/fondos_resultados/10.png","../imagenes/fondos_resultados/11.png","../imagenes/fondos_resultados/12.png"]
+        },
+        "Oscuro": {
+            "color_fondo": "#361057",
+            "color_texto": "white",
+            "color_titulos": "#31c816",
+            "color_sidebar": "#1E1E1E",
+            "colores_botones_sidebar": ["#1E1E1E", "#FFFFFF", "#555555"],
+            "musica_login": "audio/025 - The Forest of Hope (Dawn).mp3",
+            "musica_principal": "audio/020 - Impact Site (Dawn).mp3",
+            "colores_resultados": ["#270F26", "#0F2327", "#0F2327", "#262829", "#100F27", "#27110F", "#27240F", "#14270F", "#270F21"],
+            "colores_fondos_resultados": ["#5D254D", "#646666", "#6FCCD5", "#B9BFB2", "#1E56D6", "#C62321", "#D1B70E", "#61B222", "#DF6192"],
+            "fondo_login": "../imagenes/fondo_login_osc.png",
+            "fondo_inicio": "../imagenes/fondo_inicio_osc.png",
+            "fondo_ranking": "../imagenes/fondo_ranking_osc.png",
+            "fondo_realizar_salto": "../imagenes/fondo_realizar_salto_osc.png",
+            "fondo_configuracion": "../imagenes/fondo_configuracion_osc.png",
+            "fondos_resultados": ["../imagenes/fondos_resultados/17.png","../imagenes/fondos_resultados/18.png","../imagenes/fondos_resultados/19.png",
+                                  "../imagenes/fondos_resultados/20.png","../imagenes/fondos_resultados/21.png","../imagenes/fondos_resultados/22.png",
+                                  "../imagenes/fondos_resultados/23.png","../imagenes/fondos_resultados/24.png","../imagenes/fondos_resultados/25.png"]
+        }
     }
 
-    # Crear un mock para app
-    mock_app = MagicMock()
-
-    # Parchea las funciones y la variable global
-    with patch.dict('pantallas.inicio.funciones.__dict__', {'tema_actual': None, 'temas': temas, 'app': mock_app}), \
-         patch('pantallas.inicio.funciones.aplicar_tema') as mock_aplicar_tema, \
-         patch('pantallas.inicio.funciones.mostrar_pantalla_principal') as mock_mostrar_pantalla_principal:
-
-        # Llama a la función cambiar_tema
-        cambiar_tema(nuevo_tema)
-
-        # Verifica que la variable global tema_actual se actualizó correctamente
-        from pantallas.inicio.funciones import tema_actual
-        assert tema_actual == nuevo_tema
-
-        # Verifica que aplicar_tema fue llamada correctamente
-        mock_aplicar_tema.assert_called_once_with(temas[nuevo_tema])
-
-        # Verifica que mostrar_pantalla_principal fue llamada correctamente
-        mock_mostrar_pantalla_principal.assert_called_once_with(mock_app)
+    with patch("builtins.open", mock_open(read_data=mock_file_content)), \
+         patch("os.path.exists", return_value=True):
+        cargar_ajustes(temas)
+        assert tema_actual == "Claro"
+        assert idioma_actual == "es"
 
 # Prueba para la función cambiar_volumen ---------------------- CHECK
 def test_cambiar_volumen():
@@ -843,44 +958,98 @@ def test_cambiar_volumen():
     volumen = "75"
 
     # Parchea las funciones y la variable global
-    with patch.dict('pantallas.inicio.funciones.__dict__', {'volumen_actual': None}), \
-         patch('pantallas.inicio.funciones.pygame.mixer.music.set_volume') as mock_set_volume:
+    with patch.dict('main.__dict__', {'volumen_actual': None}), \
+         patch('main.pygame.mixer.music.set_volume') as mock_set_volume:
 
         # Llama a la función cambiar_volumen
         cambiar_volumen(volumen)
 
         # Verifica que la variable global volumen_actual se actualizó correctamente
-        from pantallas.inicio.funciones import volumen_actual
+        from main import volumen_actual
         assert volumen_actual == int(float(volumen))
 
         # Verifica que pygame.mixer.music.set_volume fue llamada correctamente
         mock_set_volume.assert_called_once_with(int(float(volumen)) / 100.0)
 
 # Prueba para la función reproducir_musica ---------------------- CHECK
-def test_reproducir_musica():
-    # Parchea las funciones de pygame.mixer.music
-    with patch('pantallas.inicio.funciones.pygame.mixer.music.load') as mock_load, \
-         patch('pantallas.inicio.funciones.pygame.mixer.music.play') as mock_play:
+@patch('pygame.mixer.music.load')
+@patch('pygame.mixer.music.play')
+def test_reproducir_musica(mock_play, mock_load):
+    # Parámetros de ejemplo para la prueba
+    bucle = -1
+    ruta = "test_audio.mp3"
+    fadein_duration = 5000
 
-        # Llama a la función reproducir_musica
-        reproducir_musica()
+    # Llamar a la función a probar
+    reproducir_musica(bucle, ruta, fadein_duration)
 
-        # Verifica que pygame.mixer.music.load fue llamada correctamente
-        mock_load.assert_called_once_with("../../audio/003 - Title.mp3")
+    # Verificar que pygame.mixer.music.load se llamó correctamente
+    mock_load.assert_called_once_with(ruta)
 
-        # Verifica que pygame.mixer.music.play fue llamada correctamente
-        mock_play.assert_called_once_with(-1)
+    # Verificar que pygame.mixer.music.play se llamó correctamente
+    mock_play.assert_called_once_with(bucle, fade_ms=fadein_duration)
+
+# Prueba para la función reproducir_sonido_boton ---------------------- CHECK
+@patch('main.pygame.mixer.Sound')
+@patch('main.CANAL_BOTONES')
+def test_reproducir_sonido_boton(mock_CANAL_BOTONES, mock_Sound):
+    # Configurar los mocks
+    mock_sound_instance = MagicMock()
+    mock_Sound.return_value = mock_sound_instance
+
+    # Parámetros de ejemplo
+    ruta = "test_sonido.mp3"
+
+    # Asegurar el valor global para volumen_actual
+    global volumen_actual
+    volumen_actual = 20  # Valor de ejemplo para volumen_actual
+
+    # Llamar a la función a probar
+    reproducir_sonido_boton(ruta)
+
+    # Verificar que pygame.mixer.Sound se llamó correctamente
+    mock_Sound.assert_called_once_with(ruta)
+
+    # Verificar que set_volume se llamó correctamente
+    expected_volume = volumen_actual / 200
+    mock_sound_instance.set_volume.assert_called_once_with(expected_volume)
+
+    # Verificar que CANAL_BOTONES.play se llamó correctamente
+    mock_CANAL_BOTONES.play.assert_called_once_with(mock_sound_instance)
+
+# Prueba para la función cambiar_pista_despues_de_tiempo ---------------------- CHECK
+@patch('main.threading.Timer')
+@patch('main.reproducir_musica')
+def test_cambiar_pista_despues_de_tiempo(mock_reproducir_musica, mock_Timer):
+    # Configurar el mock de Timer
+    mock_timer_instance = MagicMock()
+    mock_Timer.return_value = mock_timer_instance
+
+    # Parámetros de ejemplo para la prueba
+    tiempo = 5
+    siguiente_pista = "siguiente_pista.mp3"
+    fadein_duration = 5000
+
+    # Llamar a la función a probar
+    cambiar_pista_despues_de_tiempo(tiempo, siguiente_pista, fadein_duration)
+
+    # Verificar que threading.Timer se creó con los parámetros correctos
+    mock_Timer.assert_called_once_with(tiempo, mock_reproducir_musica, args=(-1, siguiente_pista, fadein_duration))
+
+    # Verificar que el temporizador se inició
+    mock_timer_instance.start.assert_called_once()
 
 # Prueba para la función detener_musica ---------------------- CHECK
-def test_detener_musica():
-    # Parchea la función pygame.mixer.music.stop
-    with patch('pantallas.inicio.funciones.pygame.mixer.music.stop') as mock_stop:
+@patch('main.pygame.mixer.music.fadeout')
+def test_detener_musica(mock_fadeout):
+    # Parámetro de ejemplo para la prueba
+    fadeout_duration = 1500
 
-        # Llama a la función detener_musica
-        detener_musica()
+    # Llamar a la función a probar
+    detener_musica(fadeout_duration)
 
-        # Verifica que pygame.mixer.music.stop fue llamada correctamente
-        mock_stop.assert_called_once()
+    # Verificar que pygame.mixer.music.fadeout se llamó correctamente
+    mock_fadeout.assert_called_once_with(fadeout_duration)
 
 # Prueba para la función cambiar_idioma ---------------------- CHECK
 def test_cambiar_idioma():
@@ -891,14 +1060,14 @@ def test_cambiar_idioma():
     mock_app = MagicMock()
 
     # Parchea las funciones y la variable global
-    with patch.dict('pantallas.inicio.funciones.__dict__', {'idioma_actual': None, 'app': mock_app}), \
-         patch('pantallas.inicio.funciones.mostrar_pantalla_principal') as mock_mostrar_pantalla_principal:
+    with patch.dict('main.__dict__', {'idioma_actual': None, 'app': mock_app}), \
+         patch('main.mostrar_pantalla_principal') as mock_mostrar_pantalla_principal:
 
         # Llama a la función cambiar_idioma
         cambiar_idioma(nuevo_idioma)
 
         # Verifica que la variable global idioma_actual se actualizó correctamente
-        from pantallas.inicio.funciones import idioma_actual
+        from main import idioma_actual
         assert idioma_actual == nuevo_idioma
 
         # Verifica que mostrar_pantalla_principal fue llamada correctamente
@@ -917,11 +1086,11 @@ def test_crear_imagen_texto():
     tamano_fuente_titulos = 16
 
     # Parchea los métodos de PIL
-    with patch('pantallas.inicio.funciones.Image.new') as mock_new, \
-         patch('pantallas.inicio.funciones.ImageDraw.Draw') as mock_draw, \
-         patch('pantallas.inicio.funciones.ImageFont.truetype') as mock_truetype, \
-         patch('pantallas.inicio.funciones.ImageFont.load_default') as mock_load_default, \
-         patch('pantallas.inicio.funciones.ImageTk.PhotoImage') as mock_photoimage:
+    with patch('main.Image.new') as mock_new, \
+         patch('main.ImageDraw.Draw') as mock_draw, \
+         patch('main.ImageFont.truetype') as mock_truetype, \
+         patch('main.ImageFont.load_default') as mock_load_default, \
+         patch('main.ImageTk.PhotoImage') as mock_photoimage:
 
         # Mocks de retorno
         mock_image = MagicMock()
@@ -958,25 +1127,33 @@ def test_crear_imagen_texto():
         assert resultado == mock_photoimage.return_value
 
 # Pruebas para la función guardar_datos ---------------------- CHECK
-def test_guardar_datos():
-    datos = {'key': 'value'}
+@patch('main.reproducir_sonido_boton')
+@patch('main.send_data')
+@patch('main.guardar_datos_locales')
+@patch('main.messagebox.showinfo')
+@patch('main.messagebox.showerror')
+@patch('main.get_translation')
+@patch('main.mostrar_pantalla_realizarSalto')
+def test_guardar_datos_online_success(mock_mostrar, mock_get_translation, mock_showerror, mock_showinfo, mock_guardar_datos_locales, mock_send_data, mock_reproducir_sonido):
+    # Configurar los mocks
+    mock_send_data.return_value = True
+    mock_get_translation.side_effect = lambda textos, idioma, key: key  # Devolver la clave como traducción
+    datos = {"key": "value"}
     main_content = MagicMock()
+    global modo, server, textos, idioma_actual
+    modo = "Online"
+    server = "mock_server"
+    textos = {}
+    idioma_actual = "es"
 
-    with patch('pantallas.inicio.funciones.send_data', return_value=True) as mock_send_data, \
-         patch('pantallas.inicio.funciones.messagebox.showinfo') as mock_showinfo, \
-         patch('pantallas.inicio.funciones.get_translation') as mock_get_translation, \
-         patch('pantallas.inicio.funciones.mostrar_pantalla_realizarSalto') as mock_mostrar_pantalla_realizarSalto, \
-         patch('pantallas.inicio.funciones.server', 'mock_server'), \
-         patch('pantallas.inicio.funciones.textos', {}), \
-         patch('pantallas.inicio.funciones.idioma_actual', 'es'):
+    # Llamar a la función a probar
+    guardar_datos(datos, main_content)
 
-        mock_get_translation.side_effect = lambda textos, idioma, key: f"{key}_{idioma}"
-
-        guardar_datos(datos, main_content)
-
-        mock_send_data.assert_called_once_with('mock_server', datos)
-        mock_showinfo.assert_called_once_with("Confimacion_es", "Resultados_Salto_Si_es")
-        mock_mostrar_pantalla_realizarSalto.assert_called_once_with(main_content)
+    # Verificar que las funciones se llamaron correctamente
+    mock_reproducir_sonido.assert_called_once_with("audio/buttons.mp3")
+    mock_send_data.assert_called_once_with(server, datos)
+    mock_showinfo.assert_called_once_with("Confimacion", "resultados_salto_si")
+    mock_mostrar.assert_called_once_with(main_content)
 
 # Pruebas para la función guardar_datos_locales ---------------------- CHECK
 def test_guardar_datos_locales():
@@ -1030,8 +1207,8 @@ def test_enviar_datos_login_campos_vacios(setup_fields):
     userTxTBox.value = ""
     passTxTBox.value = ""
 
-    with patch('pantallas.inicio.funciones.messagebox.showerror') as mock_showerror, \
-         patch('pantallas.inicio.funciones.get_translation', return_value="Obligatorio") as mock_get_translation:
+    with patch('main.messagebox.showerror') as mock_showerror, \
+         patch('main.get_translation', return_value="Obligatorio") as mock_get_translation:
 
         enviar_datos_login(app, userTxTBox, passTxTBox)
 
@@ -1042,10 +1219,10 @@ def test_enviar_datos_login_servidor_no_conectado(setup_fields):
     userTxTBox.value = "user"
     passTxTBox.value = "pass"
 
-    with patch('pantallas.inicio.funciones.messagebox.showerror') as mock_showerror, \
-         patch('pantallas.inicio.funciones.get_translation', return_value="LoginIncorrecto") as mock_get_translation, \
-         patch('pantallas.inicio.funciones.server', None), \
-         patch('pantallas.inicio.funciones.iniciar_conexion', return_value=None):
+    with patch('main.messagebox.showerror') as mock_showerror, \
+         patch('main.get_translation', return_value="LoginIncorrecto") as mock_get_translation, \
+         patch('main.server', None), \
+         patch('main.iniciar_conexion', return_value=None):
 
         enviar_datos_login(app, userTxTBox, passTxTBox)
 
@@ -1058,10 +1235,10 @@ def test_enviar_datos_login_exitoso(setup_fields):
 
     mock_server = MagicMock()
 
-    with patch('pantallas.inicio.funciones.messagebox.showerror') as mock_showerror, \
-         patch('pantallas.inicio.funciones.server', mock_server), \
-         patch('pantallas.inicio.funciones.login', return_value=True), \
-         patch('pantallas.inicio.funciones.mostrar_pantalla_principal') as mock_mostrar_pantalla_principal:
+    with patch('main.messagebox.showerror') as mock_showerror, \
+         patch('main.server', mock_server), \
+         patch('main.login', return_value=True), \
+         patch('main.mostrar_pantalla_principal') as mock_mostrar_pantalla_principal:
 
         enviar_datos_login(app, userTxTBox, passTxTBox)
 

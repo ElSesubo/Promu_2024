@@ -1,0 +1,168 @@
+{
+  "en": {
+    "pikmin_morado": [
+      "Scientific Name: Pikminidae yokozunum. Its size is only slightly larger than other Pikmin species, but its density is so great that they weigh about ten times more, to the point that when thrown against the ground, they create intense gravitational waves capable of, incredibly, distorting space-time itself! Their muscle fibers are also ten times denser, allowing them to carry ten times more weight than their relatives. The intense purple color is due to powerful antioxidant polyphenols."
+    ],
+    "pikmin_rojo": [
+      "Scientific Name: Pikminidae rubrus. In addition to their color, they are identified by a pointed nasal protrusion and their especially aggressive behavior. They also possess peculiar qualities such as immunity to heat and fire, which is unheard of in living organisms but is explained by observing their epidermis and muscle fibers, which are composed of fire-resistant cellulose."
+    ],
+    "pikmin_azul": [
+      "Scientific Name: Pikminidae caerula. Blue Pikmin (who sprout leaves and flowers like any terrestrial Pikmin) breathe on land through the stomata in their epidermis and in water through a gill on their head that looks like a mouth; in short, they are perfectly amphibious. The proteins in their skin pigments perform a function analogous to the photosynthesis of cyanobacteria, which gives them their striking coloration."
+    ],
+    "pikmin_amarillo": [
+      "Scientific Name: Pikminidae auribus. The bodies of yellow Pikmin conduct electricity; what is dangerous to other living beings is enjoyable to them. Electricity even makes them bloom! This species has two lamellae on either side of their head, resembling ears, which help them dig quickly and reach great heights when thrown."
+    ],
+    "pikmin_petre": [
+      "Scientific Name: Pikminidae habisaxum. This species undoubtedly belongs to the Pikmin genus, but its body does not share any of the vegetative characteristics that distinguish them; rather, its composition is primarily mineral. There is a type of parasitic Pikmin called 'Ermikmin.' In this case, the parasite takes a stone as its host, and, similar to a seed taking root through the cracks in a rock, the Pikmin's roots penetrate the stone and house vital organs in an interior cavity similar to a crystal geode."
+    ],
+    "pikmin_alado": [
+      "Scientific Name: Pikminidae volarosa. Their wings resemble those of other native flying species. It is possible that a primitive winged Onion somehow absorbed the DNA of another creature, giving rise to the precursor of the winged Pikmin as we know them today."
+    ],
+    "pikmin_blanco": [
+      "Scientific Name: Pikminidae venalbius. The poison in their bodies is a diterpene alkaloid similar to a toxin present in some roots. Ingestion can cause nausea, lung problems, and even total organ collapse, leading to death by cardiorespiratory arrest. Despite the potency of this poison, it can be used to create a medicinal substance known as aconite."
+    ],
+    "pikmin_gelido": [
+      "Scientific Name: Pikminidae habiglacius. Icy Pikmin are parasitic in nature and use ice as a host. This ice is primarily composed of water, as expected, but resembles a saline solution with low concentrations of sodium, potassium, and calcium ions that act as neurotransmitters. Interestingly, the ice shows no signs of melting when exposed to direct sunlight. This is due to the low temperature of the core, which continuously generates ice to maintain a stable size."
+    ],
+    "pikmin_luminoso": [
+      "Scientific Name: Pikminidae supravelum. These creatures share essential traits with all Pikmin: they have a leaf on their head and fight, carry weights, and propagate in similar ways. However, they do not sprout from an Onion but from Glowcaps, and their activity is exclusively nocturnal or underground. During the day, they revert to seeds and enter a dormant state. Most surprisingly, luminous Pikmin show no signs of life or vital reactions. When one dies, it transforms into light and returns to the Glowcap."
+    ],
+    "pikmin_1": "Purple pikmin",
+    "pikmin_2": "Rock pikmin",
+    "pikmin_3": "Ice pikmin",
+    "pikmin_4": "White pikmin",
+    "pikmin_5": "Blue pikmin",
+    "pikmin_6": "Red pikmin",
+    "pikmin_7": "Yellow pikmin",
+    "pikmin_8": "Glow pikmin",
+    "pikmin_9": "Winged pikmin",
+    "REALIZAR_SALTO": "PERFORM JUMP",
+    "seleccionar_datos_del_salto": "Select jump data: ",
+    "seleccionar_archivo": "Select File",
+    "masa_del_saltador": "Jumper's weight: ",
+    "nombre_saltador": "Jumper's name: ",
+    "nombre_grupo": "Group name: ",
+    "enviar_datos": "Send data",
+    "realizar_salto": "Perform jump",
+    "bienvenido_a_peakleap": "WELCOME TO PEAKLEAP",
+    "esta_aplicacion_te_permitira_registrar_y_analizar_tus_saltos": "This app will allow you to record and analyze your jumps.",
+    "sigue_este_tutorial_para_familiarizarte_con_las_funcionalidades": "Follow this tutorial to familiarize yourself with the features.",
+    "1_realizar_salto": "1. Perform Jump",
+    "en_esta_seccion_puedes_registrar_los_datos_de_tu_salto": "In this section, you can record your jump data",
+    "incluyendo_masa_y_nombre_del_saltador_y_grupo": "including jumper's weight, name, and group.",
+    "2_ranking": "2. Ranking",
+    "consulta_el_ranking_de_los_mejores_saltos_registrados_ordenados_por_altura": "Check the ranking of the best recorded jumps, sorted by height.",
+    "3_configuracion": "3. Settings",
+    "ajusta_las_configuraciones_de_la_aplicacion_como_el_tema_y_el_idioma": "Adjust the app settings, such as theme and language.",
+    "esperamos_que_disfrutes_usando_peakleap": "We hope you enjoy using PeakLeap!",
+    "CONFIGURACION": "SETTINGS",
+    "tema": "Theme:",
+    "volumen": "Volume:",
+    "idioma": "Language:",
+    "RANKING": "RANKING",
+    "nombre": "Name",
+    "grupo": "Group",
+    "altura": "Height",
+    "fecha": "Date",
+    "inicio": "Home",
+    "configuracion": "Settings",
+    "iniciar_sesion": "Login",
+    "iniciar_sesion_offline": "Offline login",
+    "usuario": "Username:",
+    "contrasena": "Password:",
+    "confirmacion": "Confirmation",
+    "resultados_salto_si": "Your results make it to the ranking",
+    "resultados_salto_no": "Your results didn't make it to the ranking",
+    "resultados_guardados": "Your results are well saved",
+    "resultados_guardados_no": "There was a problem saving your results",
+    "obligatorio": "Fields must be filled",
+    "numerico": "You must introduce a number",
+    "login_incorrecto": "Incorrect user or password",
+    "continuar": "Are you sure you want to continue?",
+    "claro": "Light",
+    "oscuro": "Dark"
+  },
+  "es": {
+    "pikmin_morado": [
+      "Nombre científico: Pikminidae yokozunum. Su tamaño es apenas algo mayor que el de otras especies de Pikmin, pero su densidad es tan grande que pesan alrededor de diez veces más, hasta el punto de que, al lanzarlos contra el suelo, crean intensas ondas gravitatorias capaces, por increíble que parezca, ¡de distorsionar el mismísimo espacio-tiempo! Sus fibras musculares también son diez veces más densas, lo que les permite transportar diez veces más peso que sus parientes. El intenso color morado se debe a unos potentes polifenoles antioxidantes."
+    ],
+    "pikmin_rojo": [
+      "Nombre científico: Pikminidae rubrus. Además de por su color, se les identifica por una puntiaguda protuberancia nasal y por su comportamiento especialmente agresivo. Además, posee ciertas cualidades peculiares, como la inmunidad al calor y al fuego, algo inaudito en organismos vivos, pero que se explica al observar su epidermis y las fibras musculares, que se componen de una celulosa ignífuga."
+    ],
+    "pikmin_azul": [
+      "Nombre científico: Pikminidae caerula. Los Pikmin azules (a quienes les brotan hojas y flores como a cualquier Pikmin terrestre) respiran en tierra mediante los estomas de la epidermis y en el agua mediante una branquia en la cabeza de aspecto similar a una boca; en definitiva: son perfectamente anfibios. Las proteínas de sus pigmentos dérmicos realizan una función análoga a la fotosíntesis de las cianobacterias, lo que les confiere esa coloración tan llamativa."
+    ],
+    "pikmin_amarillo": [
+      "Nombre científico: Pikminidae auribus. Los cuerpos de los pikmin amarillos conducen la electricidad; lo que para otros seres vivos es un peligro, para ellos es un disfrute. ¡La corriente eléctrica incluso los hace florecer! Esta especie posee dos lamelas a ambos lados de la cabeza, semejantes a orejas, que les ayudan a cavar con rapidez y alcanzar grandes alturas cuando son lanzados."
+    ],
+    "pikmin_petre": [
+      "Nombre científico: Pikminidae habisaxum. Esta especie pertenece sin duda al género de los Pikmin, pero su cuerpo no comparte ninguna de las características vegetales que los distinguen, sino que su composición es principalmente mineral. Existe un tipo de Pikmin parasitario llamado «Ermikmin». En este caso, el parásito toma como anfitrión una piedra y, de manera similar a una semilla que echa raíces a través de las grietas de una roca, las raíces del Pikmin se adentran en la piedra y alojan los órganos vitales en una cavidad interior similar a una geoda cristalizada."
+    ],
+    "pikmin_alado": [
+      "Nombre científico: Pikminidae volarosa. Sus alas se asemejan a las de otras especies voladoras autóctonas. Es posible que una cebolla alada primitiva absorbiese de algún modo el ADN de otra criatura y eso diese pie al precursor de los Pikmin alados tal y como los conocemos hoy."
+    ],
+    "pikmin_blanco": [
+      "Nombre científico: Pikminidae venalbius. El veneno de sus cuerpos es un diterpeno alcaloide similar a cierta toxina presente en algunas raíces. Su ingestión puede producir náuseas problemas pulmonares e incluso un colapso total de los órganos que podría dar pie a la muerte por paro cardiorrespiratorio. A pesar de la potencia de este veneno, se puede crear con él una sustancia medicinal conocida como acónito."
+    ],
+    "pikmin_gelido": [
+      "Nombre científico: Pikminidae habiglacius. Los Pikmin gélidos son de naturaleza parasítica y utilizan el hielo como anfitrión. Este hielo se compone principalmente de agua, como era de esperar, pero se asemeja a una solución salina con baja concentración de iones de sodio, de potasio y de calcio que actúan como transmisores neuronales. Curiosamente, el hielo no muestra señales de derretirse al exponerlo a la luz solar directa. Esto se debe a la baja temperatura del núcleo, que sigue generando hielo continuamente con el fin de mantener un tamaño estable."
+    ],
+    "pikmin_luminoso": [
+      "Nombre científico: Pikminidae supravelum. Estas criaturas comparten rasgos esenciales a todos los Pikmin: tienen una hoja sobre la cabeza y luchan, cargan pesos y se propagan de formas similares. Sin embargo, no brotan de una Cebolla, sino de Lumilomas, y su actividad es exclusivamente nocturna o subterránea. Durante el día, revierten a semillas y entran en letargo. Lo más sorprendente es que los Pikmin luminosos no muestran señales de vida ni reacciones vitales al uso. Cuando uno muere, se transforma en luz y regresa a la Lumiloma."
+    ],
+    "pikmin_1": "Pikmin morado",
+    "pikmin_2": "Pikmin petreo",
+    "pikmin_3": "Pikmin gelido",
+    "pikmin_4": "Pikmin blanco",
+    "pikmin_5": "Pikmin azul",
+    "pikmin_6": "Pikmin rojo",
+    "pikmin_7": "Pikmin amarillo",
+    "pikmin_8": "Pikmin luminoso",
+    "pikmin_9": "Pikmin alado",
+    "REALIZAR_SALTO": "REALIZAR SALTO",
+    "seleccionar_datos_del_salto": "Seleccionar datos del salto: ",
+    "seleccionar_archivo": "Seleccionar Archivo",
+    "masa_del_saltador": "Masa del saltador: ",
+    "nombre_saltador": "Nombre saltador: ",
+    "nombre_grupo": "Nombre grupo: ",
+    "enviar_datos": "Enviar datos",
+    "realizar_salto": "Realizar salto",
+    "bienvenido_a_peakleap": "BIENVENIDO A PEAKLEAP",
+    "esta_aplicacion_te_permitira_registrar_y_analizar_tus_saltos": "Esta aplicación te permitirá registrar y analizar tus saltos.",
+    "sigue_este_tutorial_para_familiarizarte_con_las_funcionalidades": "Sigue este tutorial para familiarizarte con las funcionalidades.",
+    "1_realizar_salto": "1. Realizar Salto",
+    "en_esta_seccion_puedes_registrar_los_datos_de_tu_salto": "En esta sección, puedes registrar los datos de tu salto",
+    "incluyendo_masa_y_nombre_del_saltador_y_grupo": "incluyendo masa y nombre del saltador, y grupo.",
+    "2_ranking": "2. Ranking",
+    "consulta_el_ranking_de_los_mejores_saltos_registrados_ordenados_por_altura": "Consulta el ranking de los mejores saltos registrados, ordenados por altura.",
+    "3_configuracion": "3. Configuración",
+    "ajusta_las_configuraciones_de_la_aplicacion_como_el_tema_y_el_idioma": "Ajusta las configuraciones de la aplicación, como el tema y el idioma.",
+    "esperamos_que_disfrutes_usando_peakleap": "¡Esperamos que disfrutes usando PeakLeap!",
+    "CONFIGURACION": "CONFIGURACIÓN",
+    "tema": "Tema:",
+    "volumen": "Volumen:",
+    "idioma": "Idioma:",
+    "ranking": "RANKING",
+    "nombre": "Nombre",
+    "grupo": "Grupo",
+    "altura": "Altura",
+    "fecha": "Fecha",
+    "inicio": "Inicio",
+    "configuracion": "Configuración",
+    "iniciar_sesion": "Iniciar sesión",
+    "iniciar_sesion_offline": "Iniciar sesión offline",
+    "usuario": "Usuario:",
+    "contrasena": "Contraseña:",
+    "confirmacion": "Confirmación",
+    "resultados_salto_si": "Tus resultados han entrado en la tabla de clasificación",
+    "resultados_salto_no": "Tus resultados no han entrado en la tabla de clasificación",
+    "resultados_guardados": "Tus resultados han sido guardados correctamente",
+    "resultados_guardados_no": "Ha habido un problema al guardar tus datos",
+    "obligatorio": "Todos los campos son obligatorios.",
+    "numerico": "El campo tiene que ser numérico.",
+    "login_incorrecto": "Usuario o contraseña incorrectos.",
+    "continuar": "¿Estás seguro de continuar?",
+    "claro": "Claro",
+    "oscuro": "Oscuro"
+  }
+}
