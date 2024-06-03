@@ -39,7 +39,6 @@ def login(s, username, password):
             return response.startswith("200")
     return False
 
-
 def get_leaderboard(s):
     enviar_mensaje(s, "GET_LEADERBOARD\r\n")
     response = recibir_mensaje(s)
