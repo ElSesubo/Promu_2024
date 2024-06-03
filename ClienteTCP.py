@@ -7,9 +7,14 @@ PUERTO_SERVIDOR = 64010
 DIR_SOCKET_SERVIDOR = (DIR_IP_SERVIDOR, PUERTO_SERVIDOR)
 
 def iniciar_conexion():
-    s = socket(AF_INET, SOCK_STREAM)
-    s.connect(DIR_SOCKET_SERVIDOR)
-    return s
+    try:
+        s = socket(AF_INET, SOCK_STREAM)
+        s.connect(DIR_SOCKET_SERVIDOR)
+        return s
+    except Exception as e:
+        print(f"Error al intentar conectar: {e}")
+        return False
+    return False
 
 def enviar_mensaje(s, message):
     s.send(message.encode())
@@ -18,10 +23,14 @@ def recibir_mensaje(s, buffer_size=2048):
     return s.recv(buffer_size).decode()
 
 def login(s, username, password):
-    mensaje_hello = f"HELLO 10.237.15.100\r\n"
-    s.send(mensaje_hello.encode())
-    mensaje_rx = s.recv(2048)
-    if mensaje_rx.decode().startswith("200"):
+    if not s:
+        return False
+
+    mensaje_hello = f"HELLO 10.237.13.247\r\n"
+    enviar_mensaje(s, mensaje_hello)
+    mensaje_rx = recibir_mensaje(s)
+    print(mensaje_rx)
+    if mensaje_rx.startswith("200"):
         enviar_mensaje(s, f"USER {username}\r\n")
         response = recibir_mensaje(s)
         if response.startswith("200"):
@@ -66,7 +75,10 @@ def send_data(s, data):
     enviar_mensaje(s, mensaje_final)
     response = recibir_mensaje(s)
     time.sleep(1)
-    return response
+    if response.startswith("201"):
+        return False
+    else:
+        return True
 
 def quit_session(s):
     enviar_mensaje(s, "QUIT\r\n")

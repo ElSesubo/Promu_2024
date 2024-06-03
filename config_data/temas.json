@@ -1,0 +1,94 @@
+{
+  "Claro": {
+    "color_fondo": "#BDEAFA",
+    "color_texto": "black",
+    "color_titulos": "#31c816",
+    "color_sidebar": "#fcef89",
+    "musica_login": "audio/023 - The Forest of Hope.mp3",
+    "musica_principal": "audio/009 - Impact Site.mp3",
+    "colores_botones_sidebar": [
+      "#fcef89",
+      "#000000",
+      "#fff5a4"
+    ],
+    "colores_resultados": "white",
+    "colores_fondos_resultados": [
+      "#954C8D",
+      "#646666",
+      "#98F4F8",
+      "#E9EBE7",
+      "#3D88F5",
+      "#E73734",
+      "#F4D71C",
+      "#80DF37",
+      "#F681AF"
+    ],
+    "fondo_login": "imagenes/fondo_login.png",
+    "fondo_inicio": "imagenes/fondo_inicio.png",
+    "fondo_ranking": "imagenes/fondo_ranking.png",
+    "fondo_realizar_salto": "imagenes/fondo_realizar_salto.png",
+    "fondo_configuracion": "imagenes/fondo_configuracion.png",
+    "fondos_resultados": [
+      "imagenes/fondos_resultados/4.png",
+      "imagenes/fondos_resultados/5.png",
+      "imagenes/fondos_resultados/6.png",
+      "imagenes/fondos_resultados/7.png",
+      "imagenes/fondos_resultados/8.png",
+      "imagenes/fondos_resultados/9.png",
+      "imagenes/fondos_resultados/10.png",
+      "imagenes/fondos_resultados/11.png",
+      "imagenes/fondos_resultados/12.png"
+    ]
+  },
+  "Oscuro": {
+    "color_fondo": "#361057",
+    "color_texto": "white",
+    "color_titulos": "#31c816",
+    "color_sidebar": "#1E1E1E",
+    "musica_login": "audio/025 - The Forest of Hope (Dawn).mp3",
+    "musica_principal": "audio/020 - Impact Site (Dawn).mp3",
+    "colores_botones_sidebar": [
+      "#1E1E1E",
+      "#FFFFFF",
+      "#555555"
+    ],
+    "colores_resultados": [
+      "#270F26",
+      "#0F2327",
+      "#0F2327",
+      "#262829",
+      "#100F27",
+      "#27110F",
+      "#27240F",
+      "#14270F",
+      "#270F21"
+    ],
+    "colores_fondos_resultados": [
+      "#5D254D",
+      "#646666",
+      "#6FCCD5",
+      "#B9BFB2",
+      "#1E56D6",
+      "#C62321",
+      "#D1B70E",
+      "#61B222",
+      "#DF6192"
+    ],
+    "fondo_login": "imagenes/fondo_login_osc.png",
+    "fondo_inicio": "imagenes/fondo_inicio_osc.png",
+    "fondo_ranking": "imagenes/fondo_ranking_osc.png",
+    "fondo_realizar_salto": "imagenes/fondo_realizar_salto_osc.png",
+    "fondo_configuracion": "imagenes/fondo_configuracion_osc.png",
+    "fondos_resultados": [
+      "imagenes/fondos_resultados/17.png",
+      "imagenes/fondos_resultados/18.png",
+      "imagenes/fondos_resultados/19.png",
+      "imagenes/fondos_resultados/20.png",
+      "imagenes/fondos_resultados/21.png",
+      "imagenes/fondos_resultados/22.png",
+      "imagenes/fondos_resultados/23.png",
+      "imagenes/fondos_resultados/24.png",
+      "imagenes/fondos_resultados/25.png"
+    ]
+  }
+}
