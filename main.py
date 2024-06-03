@@ -103,44 +103,19 @@ def get_translation(translations, lang, key):
 
 def importar_datos(fichero):
     try:
-        data = pd.read_excel(fichero, engine='openpyxl')
-        data = data.replace(',', '.', regex=True)
-        t = data['t'].astype(float).values
-        a = data['a'].astype(float).values
-        ax = data['ax'].astype(float).values
-        ay = data['ay'].astype(float).values
-        az = data['az'].astype(float).values
+        data = pd.read_excel(fichero)
+        t = data.values[:,0].astype(float)
+        a = data.values[:,1].astype(float)
+        ax = np.array(data['ax'])
+        ay = np.array(data['ay'])
+        az = np.array(data['az'])
     except ValueError as e:
         print(f"Error al convertir los datos: {e}")
         return None, None, None, None, None
     return t, a, ax, ay, az
 
-def representar_figuras(t, ax, ay, az, a):
-    plt.figure()
-    plt.plot(t, ax, label='$a_x$')
-    plt.plot(t, ay, label='$a_y$')
-    plt.plot(t, az, label='$a_z$')
-    plt.plot(t, a, label='$||a||$')
-    plt.grid('on')
-    plt.xlabel('$t$ [s]')
-    plt.ylabel('$a$ [m/s^2$]')
-    plt.title('Datos del acelerómetro')
-    plt.legend()
-    plt.show()
-
 def corregir_aceleracion(a, ay):
     return np.abs(a) * np.sign(ay)
-
-def representar_aceleracion_corregida(t, a_fixed, a):
-    plt.figure()
-    plt.plot(t, a_fixed, label='$||a||$ Corregida')
-    plt.plot(t, a, '--', label='$||a||$ Original')
-    plt.grid('on')
-    plt.xlabel('$t$ [s]')
-    plt.ylabel('$a$ [m/s^2$]')
-    plt.title('Módulo de la aceleración medida')
-    plt.legend()
-    plt.show()
 
 def recortar_combinar_datos(t, a_fixed):
     start_index = np.searchsorted(t, 0.5)
@@ -160,17 +135,6 @@ def recortar_combinar_datos(t, a_fixed):
 def aplicar_filtro_savgol(a_combinada):
     return savgol_filter(a_combinada, window_length=11, polyorder=3)
 
-def representar_senales(t_combinada, a_combinada, a_filtrada):
-    plt.figure()
-    plt.plot(t_combinada, a_combinada, '-o', label='Corregida', markersize=4)
-    plt.plot(t_combinada, a_filtrada, label='Corregida y Filtrada')
-    plt.grid('on')
-    plt.xlabel('$t$ [s]')
-    plt.ylabel('$a$ [m/$s^2$]')
-    plt.title('Señal suavizada (2)')
-    plt.legend()
-    plt.show()
-
 def obtener_instantes_clave(t_combinada, a_filtrada):
     diff_a_filtrada = np.diff(a_filtrada)
     t1_index = np.argmax(diff_a_filtrada > 0.1) + 1
@@ -187,23 +151,6 @@ def obtener_instantes_clave(t_combinada, a_filtrada):
     t3 = t_combinada[t3_index]
 
     return t1, t2, t3, t1_index, t2_index, t3_index
-
-def representar_instantes_clave(t_combinada, a_filtrada, t1, t2, t3, t1_index, t2_index, t3_index):
-    a_t1 = a_filtrada[t1_index]
-    a_t2 = a_filtrada[t2_index]
-    a_t3 = a_filtrada[t3_index]
-
-    plt.figure()
-    plt.plot(t_combinada, a_filtrada, label='Corregida y Filtrada')
-    plt.scatter(t1, a_t1, color='r', label='Inicio de impulso')
-    plt.scatter(t2, a_t2, color='g', label='Máxima aceleración')
-    plt.scatter(t3, a_t3, color='b', label='Impacto en el suelo')
-    plt.grid('on')
-    plt.xlabel('$t$ [s]')
-    plt.ylabel('$a$ [m/$s^2$]')
-    plt.title('Puntos de interés')
-    plt.legend()
-    plt.show()
 
 def calcular_fuerza_salto(a_filtrada, g_medida, m):
     a_salt = a_filtrada - g_medida
@@ -230,52 +177,15 @@ def calcular_velocidad_salto(t_combinada, a_filtrada, g_medida, start_index, end
 
     return v_recortada, t_v_recortada, dt
 
-def representar_velocidad(t_v_recortada, v_recortada, t_v_max, v_max, t_fin_impulso, t_v_min):
-    plt.figure()
-    plt.plot(t_v_recortada, v_recortada)
-    plt.scatter(t_v_max, v_max, color='r', label='Velocidad máxima durante el despegue')
-    plt.axvspan(t_fin_impulso, t_v_min, color='purple', alpha=0.3, label='Tiempo de vuelo')
-    plt.grid('on')
-    plt.xlabel('$t$ [s]')
-    plt.ylabel('$v$ [m/s]')
-    plt.title('Velocidad en función del tiempo')
-    plt.legend()
-    plt.show()
-
 def calcular_potencia_salto(F, v_recortada, t1_index, t3_index, t_combinada):
     P = F[t1_index:t3_index + 1] * v_recortada
     t_recortado = t_combinada[t1_index:t3_index + 1]
     return P, t_recortado
 
-def representar_potencia(t_recortado, P, t_p_max, p_max):
-    plt.figure()
-    plt.plot(t_recortado, P, label='potencia')
-    plt.scatter(t_p_max, p_max, color='r', label='potencia maxima')
-    plt.grid('on')
-    plt.xlabel('$t$ [s]')
-    plt.ylabel('$v$ [m/s]')
-    plt.title('Potencia en función del tiempo')
-    plt.legend()
-    plt.show()
-
 def calcular_altura_salto(v_max, g_medida, t_vuelo):
     H_a = (v_max ** 2) / (2 * g_medida)
     H_b = (g_medida * (t_vuelo / 2) ** 2) / 2
     return H_a, H_b
-
-def representar_altura(t_combinada, v, start_index, end_index):
-    dt = t_combinada[1] - t_combinada[0]
-    altura = cumtrapz(v, dx=dt, initial=0)
-    alt_recortada = altura[start_index:end_index + 1]
-    t_alt_recortada = t_combinada[start_index:end_index + 1]
-
-    plt.figure()
-    plt.plot(t_alt_recortada, alt_recortada)
-    plt.grid('on')
-    plt.xlabel('$t$ [s]')
-    plt.ylabel('Altura [m]')
-    plt.title('Altura del salto en función del tiempo')
-    plt.show()
 
 def calcular_datos_salto(fichero, masa):
     t, a, ax, ay, az = importar_datos(fichero)
@@ -287,6 +197,7 @@ def calcular_datos_salto(fichero, masa):
     t_combinada, a_combinada = recortar_combinar_datos(t, a_fixed)
     a_filtrada = aplicar_filtro_savgol(a_combinada)
     t1, t2, t3, t1_index, t2_index, t3_index = obtener_instantes_clave(t_combinada, a_filtrada)
+    a_t2 = a_filtrada[t2_index]
     g_medida = np.mean(a_filtrada[:t1_index])
     F = calcular_fuerza_salto(a_filtrada, g_medida, masa)
     v_recortada, t_v_recortada, dt = calcular_velocidad_salto(t_combinada, a_filtrada, g_medida, t1_index, t3_index)
@@ -298,6 +209,8 @@ def calcular_datos_salto(fichero, masa):
     ind_v_min = np.argmin(v_recortada)
     t_v_min = t_v_recortada[ind_v_min]
     t_vuelo = t_v_min - t_fin_impulso
+    t_vuelo_array = np.linspace(0, t_vuelo, num=500)
+    altura_t_vuelo = (g_medida / 2) * (t_vuelo_array / 2)**2
     P, t_recortado = calcular_potencia_salto(F, v_recortada, t1_index, t3_index, t_combinada)
     p_max = np.max(P)
     ind_p_max = np.argmax(P)
@@ -310,72 +223,99 @@ def calcular_datos_salto(fichero, masa):
         't1': t1, 't2': t2, 't3': t3, 't1_index': t1_index, 't2_index': t2_index, 't3_index': t3_index,
         'v_recortada': v_recortada, 't_v_recortada': t_v_recortada, 't_v_max': t_v_max,
         'v_max': v_max, 't_v_min': t_v_min, 'v_min': v_min, 'P': P, 't_recortado': t_recortado, 't_p_max': t_p_max, 'p_max': p_max,
-        'start_index': t1_index, 'end_index': t3_index
+        'start_index': t1_index, 'end_index': t3_index, 'a_t2': a_t2, 't_vuelo_array': t_vuelo_array, 'altura_t_vuelo': altura_t_vuelo
     }
 
     return H_b, datos
 
 def representar_todos_los_datos(datos):
     reproducir_sonido_boton("audio/buttons.mp3")
-    fig, axs = plt.subplots(3, 2, figsize=(14, 18))
+    num_graficas = 8  # Número total de gráficos
+    filas = (num_graficas + 2) // 3  # Calcular el número de filas necesarias (redondeando hacia arriba)
+    fig, axs = plt.subplots(filas, 3, figsize=(21, 6 * filas))
+
+    axs = axs.flatten()
 
     # Gráfico de aceleraciones originales
-    axs[0, 0].plot(datos['t'], datos['ax'], label='ax')
-    axs[0, 0].plot(datos['t'], datos['ay'], label='ay')
-    axs[0, 0].plot(datos['t'], datos['az'], label='az')
-    axs[0, 0].plot(datos['t'], datos['a'], label='a')
-    axs[0, 0].set_title('Aceleraciones originales')
-    axs[0, 0].set_xlabel('Tiempo [s]')
-    axs[0, 0].set_ylabel('Aceleración [m/s²]')
-    axs[0, 0].grid(True)
-    axs[0, 0].legend()
+    axs[0].plot(datos['t'], datos['ax'], label='ax')
+    axs[0].plot(datos['t'], datos['ay'], label='ay')
+    axs[0].plot(datos['t'], datos['az'], label='az')
+    axs[0].plot(datos['t'], datos['a'], label='a')
+    axs[0].set_title(get_translation(textos, idioma_actual, "aceleraciones_originales"))
+    axs[0].set_xlabel(get_translation(textos, idioma_actual, "tiempo_s"))
+    axs[0].set_ylabel(get_translation(textos, idioma_actual, "aceleracion_ms"))
+    axs[0].grid(True)
+    axs[0].legend()
 
     # Gráfico de aceleración corregida
-    axs[0, 1].plot(datos['t'], datos['a_fixed'], label='a corregida')
-    axs[0, 1].set_title('Aceleración corregida')
-    axs[0, 1].set_xlabel('Tiempo [s]')
-    axs[0, 1].set_ylabel('Aceleración [m/s²]')
-    axs[0, 1].grid(True)
-    axs[0, 1].legend()
+    axs[1].plot(datos['t'], datos['a_fixed'], label=get_translation(textos, idioma_actual, "a_corregida"))
+    axs[1].set_title(get_translation(textos, idioma_actual, "aceleracion_corregida"))
+    axs[1].set_xlabel(get_translation(textos, idioma_actual, "tiempo_s"))
+    axs[1].set_ylabel(get_translation(textos, idioma_actual, "aceleracion_ms"))
+    axs[1].grid(True)
+    axs[1].legend()
 
     # Gráfico de señales filtradas
-    axs[1, 0].plot(datos['t_combinada'], datos['a_combinada'], label='a combinada')
-    axs[1, 0].plot(datos['t_combinada'], datos['a_filtrada'], label='a filtrada')
-    axs[1, 0].set_title('Señales combinadas y filtradas')
-    axs[1, 0].set_xlabel('Tiempo [s]')
-    axs[1, 0].set_ylabel('Aceleración [m/s²]')
-    axs[1, 0].grid(True)
-    axs[1, 0].legend()
+    axs[2].plot(datos['t_combinada'], datos['a_combinada'], label=get_translation(textos, idioma_actual, "a_combinada"))
+    axs[2].plot(datos['t_combinada'], datos['a_filtrada'], label=get_translation(textos, idioma_actual, "a_filtrada"))
+    axs[2].set_title(get_translation(textos, idioma_actual, "senales_combinadas_filtradas"))
+    axs[2].set_xlabel(get_translation(textos, idioma_actual, "tiempo_s"))
+    axs[2].set_ylabel(get_translation(textos, idioma_actual, "aceleracion_ms"))
+    axs[2].grid(True)
+    axs[2].legend()
 
     # Gráfico de instantes clave
-    axs[1, 1].plot(datos['t_combinada'], datos['a_filtrada'], label='a filtrada')
-    axs[1, 1].plot(datos['t1'], datos['a_filtrada'][datos['t1_index']], 'ro')  # t1
-    axs[1, 1].plot(datos['t2'], datos['a_filtrada'][datos['t2_index']], 'go')  # t2
-    axs[1, 1].plot(datos['t3'], datos['a_filtrada'][datos['t3_index']], 'bo')  # t3
-    axs[1, 1].set_title('Instantes clave')
-    axs[1, 1].set_xlabel('Tiempo [s]')
-    axs[1, 1].set_ylabel('Aceleración [m/s²]')
-    axs[1, 1].grid(True)
-    axs[1, 1].legend()
+    axs[3].plot(datos['t_combinada'], datos['a_filtrada'], label=get_translation(textos, idioma_actual, "a_filtrada"))
+    axs[3].plot(datos['t1'], datos['a_filtrada'][datos['t1_index']], 'ro')  # t1
+    axs[3].plot(datos['t2'], datos['a_filtrada'][datos['t2_index']], 'go')  # t2
+    axs[3].plot(datos['t3'], datos['a_filtrada'][datos['t3_index']], 'bo')  # t3
+    axs[3].set_title(get_translation(textos, idioma_actual, "instantes_clave"))
+    axs[3].set_xlabel(get_translation(textos, idioma_actual, "tiempo_s"))
+    axs[3].set_ylabel(get_translation(textos, idioma_actual, "aceleracion_ms"))
+    axs[3].grid(True)
+    axs[3].legend()
 
     # Gráfico de velocidad
-    axs[2, 0].plot(datos['t_v_recortada'], datos['v_recortada'], label='Velocidad')
-    axs[2, 0].plot(datos['t_v_max'], datos['v_max'], 'ro')  # Velocidad máxima
-    axs[2, 0].plot(datos['t_v_min'], datos['v_min'], 'bo')  # Velocidad mínima
-    axs[2, 0].set_title('Velocidad en función del tiempo')
-    axs[2, 0].set_xlabel('Tiempo [s]')
-    axs[2, 0].set_ylabel('Velocidad [m/s]')
-    axs[2, 0].grid(True)
-    axs[2, 0].legend()
+    axs[4].plot(datos['t_v_recortada'], datos['v_recortada'], label=get_translation(textos, idioma_actual, "velocidad"))
+    axs[4].plot(datos['t_v_max'], datos['v_max'], 'ro')  # Velocidad máxima
+    axs[4].plot(datos['t_v_min'], datos['v_min'], 'bo')  # Velocidad mínima
+    axs[4].axvspan(datos['t_v_min'],datos['t_v_max'], color='purple', alpha=0.3, label=get_translation(textos, idioma_actual, "tiempo_vuelo"))
+    axs[4].set_title(get_translation(textos, idioma_actual, "velocidad_funcion_tiempo"))
+    axs[4].set_xlabel(get_translation(textos, idioma_actual, "tiempo_s"))
+    axs[4].set_ylabel(get_translation(textos, idioma_actual, "velocidad_ms"))
+    axs[4].grid(True)
+    axs[4].legend()
 
     # Gráfico de potencia
-    axs[2, 1].plot(datos['t_recortado'], datos['P'], label='Potencia')
-    axs[2, 1].plot(datos['t_p_max'], datos['p_max'], 'ro')  # Potencia máxima
-    axs[2, 1].set_title('Potencia en función del tiempo')
-    axs[2, 1].set_xlabel('Tiempo [s]')
-    axs[2, 1].set_ylabel('Potencia [W]')
-    axs[2, 1].grid(True)
-    axs[2, 1].legend()
+    axs[5].plot(datos['t_recortado'], datos['P'], label=get_translation(textos, idioma_actual, "potencia"))
+    axs[5].plot(datos['t_p_max'], datos['p_max'], 'ro')  # Potencia máxima
+    axs[5].set_title(get_translation(textos, idioma_actual, "potencia_funcion_tiempo"))
+    axs[5].set_xlabel(get_translation(textos, idioma_actual, "tiempo_s"))
+    axs[5].set_ylabel(get_translation(textos, idioma_actual, "potencia_w"))
+    axs[5].grid(True)
+    axs[5].legend()
+
+    # Gráfico de fuerza
+    axs[6].plot(datos['t_combinada'], datos['a_filtrada'], label=get_translation(textos, idioma_actual, "fuerza"))
+    axs[6].scatter(datos['t2'], float(datos['a_t2']), color='r', label=get_translation(textos, idioma_actual, "fuerza_max"))
+    axs[6].set_title(get_translation(textos, idioma_actual, "fuerza_funcion_tiempo"))
+    axs[6].set_xlabel(get_translation(textos, idioma_actual, "tiempo_s"))
+    axs[6].set_ylabel(get_translation(textos, idioma_actual, "fuerza_n"))
+    axs[6].grid(True)
+    axs[6].legend()
+
+    # Gráfico de altura
+    axs[7].plot(datos['t_vuelo_array'], datos['altura_t_vuelo'], label=get_translation(textos, idioma_actual, "altura"))
+    axs[7].set_title(get_translation(textos, idioma_actual, "altura_funcion_tiempo"))
+    axs[7].set_xlabel(get_translation(textos, idioma_actual, "tiempo_s"))
+    axs[7].set_ylabel(get_translation(textos, idioma_actual, "altura_m"))
+    axs[7].grid(True)
+    axs[7].legend()
+
+
+    if num_graficas % 3 != 0:
+        for i in range(num_graficas, len(axs)):
+            fig.delaxes(axs[i])
 
     fig.subplots_adjust(hspace=0.4, wspace=0.3)
 
@@ -384,6 +324,8 @@ def representar_todos_los_datos(datos):
 
 def salir(app):
     global server
+    global modo
+    modo = "Online"
     if server:
         respuesta = messagebox.askyesno(get_translation(textos, idioma_actual, "confirmacion"), get_translation(textos, idioma_actual, "continuar"))
 
@@ -791,14 +733,14 @@ def mostrar_pantalla_resultados(main_content, masaRecipiente, nombreRecipiente, 
         top_box.tk.config(bg=colores_fondos_resultados[color_diapo])
         top_box = Box(contenido, grid=[0, 1], width="fill", height=20)
         top_box.tk.config(bg='white')
-        imagen_texto = crear_imagen_texto(get_translation(textos, idioma_actual, pikmin_name), 300, 40, 0, "white", color_texto, fuente_titulos, 30)
+        imagen_texto = crear_imagen_texto(get_translation(textos, idioma_actual, pikmin_name) + f" ({round(resultado*100, 2)} cm)", 400, 40, 0, "white", color_texto, fuente_titulos, 30)
         titulo = tk.Label(titulo_box.tk, image=imagen_texto, bg='white')
     else:
         top_box = Box(contenido, grid=[0, 0], width="fill", height=71)
         top_box.tk.config(bg=colores_fondos_resultados[color_diapo])
         top_box = Box(contenido, grid=[0, 1], width="fill", height=20)
         top_box.tk.config(bg=colores_resultados[color_diapo])
-        imagen_texto = crear_imagen_texto(get_translation(textos, idioma_actual, "realizar_salto"), 200, 40, 0, colores_resultados[color_diapo], color_texto, fuente_titulos, 30)
+        imagen_texto = crear_imagen_texto(get_translation(textos, idioma_actual, pikmin_name) + f" ({round(resultado*100, 2)} cm)", 400, 40, 0, colores_resultados[color_diapo], color_texto, fuente_titulos, 30)
         titulo = tk.Label(titulo_box.tk, image=imagen_texto, bg=colores_resultados[color_diapo])
 
     titulo.grid(row=0, column=0, sticky="nsew")
@@ -1182,6 +1124,14 @@ def mostrar_pantalla_login(app):
     sendPB = PushButton(button_container, image=imagen_boton, align="top", command=lambda: (iniciar_offline(app), reproducir_sonido_boton("audio/hm5.mp3")))
     estilizar_boton(sendPB, colores_botones_inter)
 
+    canvas_boton_salir = tk.Canvas(canvas, width=70, height=65, highlightthickness=0, bg=color_fondo)
+    canvas_boton_salir.place(x=720, y=10, anchor="nw")
+    load_image(canvas_boton_salir, "imagenes/boton_salir.png", [70, 65])
+    canvas_boton_salir.bind("<Button-1>", lambda event: (reproducir_sonido_boton("audio/fall1.mp3", exit())))
+    canvas_boton_salir.bind("<Enter>", lambda event: canvas_boton_salir.config(cursor="hand2"))
+    canvas_boton_salir.bind("<Leave>", lambda event: canvas_boton_salir.config(cursor=""))
+
+
 def iniciar_offline(app):
     global modo
     modo = "Offline"
@@ -1189,6 +1139,7 @@ def iniciar_offline(app):
 
 if __name__ == "__main__":
     app = App(title="PikLeap", width=800, height=600, bg="#fff5a4")
+    app.tk.iconbitmap('imagenes/icono.ico')
     with open('config_data/temas.json', 'r') as archivo_temas:
         temas = json.load(archivo_temas)
     with open('config_data/idiomas.json', 'r', encoding='utf-8') as archivo_idiomas:
