@@ -1,7 +1,6 @@
 import datetime
 import json
 import threading
-import time
 from tkinter import ttk, messagebox
 from PIL import ImageDraw, ImageFont
 from guizero import App, Box, Text, PushButton, TextBox, info
