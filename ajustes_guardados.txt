@@ -1,2 +1,2 @@
-Tema:Oscuro
+Tema:Claro
 Idioma:en

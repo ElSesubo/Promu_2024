@@ -26,7 +26,7 @@ def login(s, username, password):
     if not s:
         return False
 
-    mensaje_hello = f"HELLO 10.237.13.247\r\n"
+    mensaje_hello = f"HELLO {s.getsockname()[0]}\r\n"
     enviar_mensaje(s, mensaje_hello)
     mensaje_rx = recibir_mensaje(s)
     print(mensaje_rx)
